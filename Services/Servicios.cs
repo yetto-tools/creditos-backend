@@ -724,12 +724,12 @@ namespace BACKEND_CREDITOS.Services
             using (var cmd = (OracleCommand)connection.CreateCommand())
             {
                 cmd.CommandText = @"
-                    INSERT INTO pagos_inversion (
+                    INSERT INTO pagos_inversiones (
                         id_pago_inversion, id_inversion, numero_pago, capital_pagado,
                         interes_pagado, monto_total_pagado, fecha_programada,
                         estado_pago, fecha_creacion
                     ) VALUES (
-                        seq_pagos_inversion.NEXTVAL, :idInversion, :numeroPago, :capital,
+                        seq_pagos_inversiones.NEXTVAL, :idInversion, :numeroPago, :capital,
                         :interes, :montoTotal, :fechaProgramada,
                         'PENDIENTE', SYSDATE
                     )";
@@ -954,7 +954,7 @@ namespace BACKEND_CREDITOS.Services
                         command.CommandText = @"
                             SELECT id_pago_inversion, numero_pago, capital_pagado, interes_pagado,
                                    monto_total_pagado, fecha_programada, fecha_pago, estado_pago
-                            FROM pagos_inversion
+                            FROM pagos_inversiones
                             WHERE id_inversion = :idInversion
                             ORDER BY numero_pago";
 
@@ -1013,7 +1013,7 @@ namespace BACKEND_CREDITOS.Services
                             using (var cmdPagos = (OracleCommand)connection.CreateCommand())
                             {
                                 cmdPagos.CommandText = @"
-                                    UPDATE pagos_inversion
+                                    UPDATE pagos_inversiones
                                     SET estado_pago = 'CANCELADO'
                                     WHERE id_inversion = :idInversion AND estado_pago = 'PENDIENTE'";
 
@@ -1061,7 +1061,7 @@ namespace BACKEND_CREDITOS.Services
                     using (var command = (OracleCommand)connection.CreateCommand())
                     {
                         command.CommandText = @"
-                            UPDATE pagos_inversion
+                            UPDATE pagos_inversiones
                             SET estado_pago = 'VENCIDO'
                             WHERE estado_pago = 'PENDIENTE'
                             AND fecha_programada < SYSDATE";
@@ -1129,7 +1129,7 @@ namespace BACKEND_CREDITOS.Services
                             INSERT INTO prestamos (
                                 id_prestamo, id_usuario, id_moneda, entidad_financiera, capital_prestado,
                                 tasa_interes, plazo_dias, modalidad_pago, fecha_inicio, fecha_vencimiento,
-                                interes_total_proyectado, monto_total_a_pagar, estado,
+                                interes_total_proyectado, monto_total_a_recibir, estado,
                                 fecha_creacion, observaciones
                             ) VALUES (
                                 seq_prestamos.NEXTVAL, :idUsuario, :idMoneda, :entidadFinanciera, :capitalPrestado,
@@ -1199,12 +1199,12 @@ namespace BACKEND_CREDITOS.Services
             using (var cmd = (OracleCommand)connection.CreateCommand())
             {
                 cmd.CommandText = @"
-                    INSERT INTO pagos_prestamo (
+                    INSERT INTO pagos_prestamos (
                         id_pago_prestamo, id_prestamo, numero_pago, capital_pagado,
                         interes_pagado, monto_total_pagado, fecha_programada,
                         estado_pago, fecha_creacion
                     ) VALUES (
-                        seq_pagos_prestamo.NEXTVAL, :idPrestamo, :numeroPago, :capital,
+                        seq_pagos_prestamos.NEXTVAL, :idPrestamo, :numeroPago, :capital,
                         :interes, :montoTotal, :fechaProgramada,
                         'PENDIENTE', SYSDATE
                     )";
@@ -1234,7 +1234,7 @@ namespace BACKEND_CREDITOS.Services
                             SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
                                    p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
                                    p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
-                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                                   p.interes_total_proyectado, p.monto_total_a_recibir, p.estado
                             FROM prestamos p
                             JOIN monedas m ON p.id_moneda = m.id_moneda
                             WHERE p.id_prestamo = :idPrestamo";
@@ -1296,7 +1296,7 @@ namespace BACKEND_CREDITOS.Services
                             SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
                                    p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
                                    p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
-                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                                   p.interes_total_proyectado, p.monto_total_a_recibir, p.estado
                             FROM prestamos p
                             JOIN monedas m ON p.id_moneda = m.id_moneda";
 
@@ -1364,7 +1364,7 @@ namespace BACKEND_CREDITOS.Services
                             SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
                                    p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
                                    p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
-                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                                   p.interes_total_proyectado, p.monto_total_a_recibir, p.estado
                             FROM prestamos p
                             JOIN monedas m ON p.id_moneda = m.id_moneda
                             WHERE p.estado = 'VIGENTE'";
@@ -1432,7 +1432,7 @@ namespace BACKEND_CREDITOS.Services
                         command.CommandText = @"
                             SELECT id_pago_prestamo, numero_pago, capital_pagado, interes_pagado,
                                    monto_total_pagado, fecha_programada, fecha_pago, estado_pago
-                            FROM pagos_prestamo
+                            FROM pagos_prestamos
                             WHERE id_prestamo = :idPrestamo
                             ORDER BY numero_pago";
 
@@ -1491,7 +1491,7 @@ namespace BACKEND_CREDITOS.Services
                             using (var cmdPagos = (OracleCommand)connection.CreateCommand())
                             {
                                 cmdPagos.CommandText = @"
-                                    UPDATE pagos_prestamo
+                                    UPDATE pagos_prestamos
                                     SET estado_pago = 'CANCELADO'
                                     WHERE id_prestamo = :idPrestamo AND estado_pago = 'PENDIENTE'";
 
@@ -1539,7 +1539,7 @@ namespace BACKEND_CREDITOS.Services
                     using (var command = (OracleCommand)connection.CreateCommand())
                     {
                         command.CommandText = @"
-                            UPDATE pagos_prestamo
+                            UPDATE pagos_prestamos
                             SET estado_pago = 'VENCIDO'
                             WHERE estado_pago = 'PENDIENTE'
                             AND fecha_programada < SYSDATE";
@@ -1830,7 +1830,7 @@ namespace BACKEND_CREDITOS.Services
                                         capital_vigente_inversionistas, capital_colocado_sistema_financiero,
                                         capital_disponible, capital_total, fecha_creacion
                                     ) VALUES (
-                                        seq_saldo_diario.NEXTVAL, :idMoneda, TRUNC(SYSDATE),
+                                        seq_saldo_diario_fondos.NEXTVAL, :idMoneda, TRUNC(SYSDATE),
                                         :capitalVigente, :capitalColocado,
                                         :capitalDisponible, :capitalTotal, SYSDATE
                                     )";
