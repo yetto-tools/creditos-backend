@@ -15,6 +15,35 @@
         public DateTime FechaCreacion { get; set; }
         public DateTime? FechaUltimoAcceso { get; set; }
         public DateTime FechaCambioContrasena { get; set; }
+
+        // Navegación
+        public List<UsuarioRol> UsuariosRoles { get; set; } = new();
+    }
+
+    public class Rol
+    {
+        public int IdRol { get; set; }
+        public string NombreRol { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public string Estado { get; set; } = "ACTIVO";
+        public DateTime FechaCreacion { get; set; }
+
+        // Navegación
+        public List<UsuarioRol> UsuariosRoles { get; set; } = new();
+    }
+
+    public class UsuarioRol
+    {
+        public int IdUsuarioRol { get; set; }
+        public int IdUsuario { get; set; }
+        public int IdRol { get; set; }
+        public DateTime FechaAsignacion { get; set; }
+        public int? AsignadoPor { get; set; }
+
+        // Navegación
+        public Usuario? Usuario { get; set; }
+        public Rol? Rol { get; set; }
+        public Usuario? AsignadoPorUsuario { get; set; }
     }
 
     public class Moneda
@@ -167,6 +196,47 @@
         public string ContrasenaActual { get; set; } = string.Empty;
         public string ContrasenaNueva { get; set; } = string.Empty;
         public string ConfirmarContrasenaNueva { get; set; } = string.Empty;
+    }
+
+    // Rol DTOs
+    public class RolDto
+    {
+        public int IdRol { get; set; }
+        public string NombreRol { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+    }
+
+    public class RolCreateRequest
+    {
+        public string NombreRol { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+    }
+
+    public class RolUpdateRequest
+    {
+        public string? NombreRol { get; set; }
+        public string? Descripcion { get; set; }
+        public string? Estado { get; set; }
+    }
+
+    public class UsuarioRolDto
+    {
+        public int IdUsuarioRol { get; set; }
+        public int IdUsuario { get; set; }
+        public int IdRol { get; set; }
+        public string NombreUsuario { get; set; } = string.Empty;
+        public string NombreRol { get; set; } = string.Empty;
+        public DateTime FechaAsignacion { get; set; }
+        public int? AsignadoPor { get; set; }
+        public string? AsignadoPorNombre { get; set; }
+    }
+
+    public class AsignarRolRequest
+    {
+        public int IdUsuario { get; set; }
+        public int IdRol { get; set; }
     }
 
     // Moneda DTOs

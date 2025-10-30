@@ -68,6 +68,19 @@ namespace BACKEND_CREDITOS.Services
         Task<bool> ActualizarSaldos();
     }
 
+    public interface IRolService
+    {
+        Task<RolDto?> ObtenerPorId(int id);
+        Task<List<RolDto>> ObtenerTodos();
+        Task<int> Crear(RolCreateRequest request);
+        Task<bool> Actualizar(int id, RolUpdateRequest request);
+        Task<bool> Eliminar(int id);
+        Task<bool> AsignarRolAUsuario(int idUsuario, int idRol, int asignadoPor);
+        Task<bool> RemoverRolDeUsuario(int idUsuario, int idRol);
+        Task<List<UsuarioRolDto>> ObtenerRolesDeUsuario(int idUsuario);
+        Task<List<UsuarioRolDto>> ObtenerUsuariosConRol(int idRol);
+    }
+
     // ============================================================================
     // IMPLEMENTACIÓN - SERVICIO DE AUTENTICACIÓN
     // ============================================================================
@@ -1695,6 +1708,364 @@ namespace BACKEND_CREDITOS.Services
                 _logger.LogError($"Error actualizando saldos: {ex.Message}");
                 return false;
             }
+        }
+    }
+
+    // ============================================================================
+    // IMPLEMENTACIÓN - SERVICIO DE ROLES
+    // ============================================================================
+
+    public class RolService : IRolService
+    {
+        private readonly IConnectionRepository _connectionRepository;
+        private readonly ILogger<RolService> _logger;
+
+        public RolService(IConnectionRepository connectionRepository, ILogger<RolService> logger)
+        {
+            _connectionRepository = connectionRepository;
+            _logger = logger;
+        }
+
+        public async Task<RolDto?> ObtenerPorId(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT id_rol, nombre_rol, descripcion, estado, fecha_creacion
+                                               FROM roles WHERE id_rol = :id_rol";
+                        command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = id });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                return new RolDto
+                                {
+                                    IdRol = reader.GetInt32(0),
+                                    NombreRol = reader.GetString(1),
+                                    Descripcion = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                    Estado = reader.GetString(3),
+                                    FechaCreacion = reader.GetDateTime(4)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo rol por ID: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public async Task<List<RolDto>> ObtenerTodos()
+        {
+            var roles = new List<RolDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT id_rol, nombre_rol, descripcion, estado, fecha_creacion
+                                               FROM roles ORDER BY nombre_rol";
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                roles.Add(new RolDto
+                                {
+                                    IdRol = reader.GetInt32(0),
+                                    NombreRol = reader.GetString(1),
+                                    Descripcion = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                    Estado = reader.GetString(3),
+                                    FechaCreacion = reader.GetDateTime(4)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo roles: {ex.Message}");
+            }
+
+            return roles;
+        }
+
+        public async Task<int> Crear(RolCreateRequest request)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"INSERT INTO roles (id_rol, nombre_rol, descripcion, estado, fecha_creacion)
+                                               VALUES (seq_roles.NEXTVAL, :nombre_rol, :descripcion, 'ACTIVO', SYSDATE)
+                                               RETURNING id_rol INTO :id_rol";
+
+                        command.Parameters.Add(new OracleParameter("nombre_rol", OracleDbType.Varchar2) { Value = request.NombreRol });
+                        command.Parameters.Add(new OracleParameter("descripcion", OracleDbType.Varchar2) { Value = request.Descripcion });
+
+                        var outParameter = new OracleParameter("id_rol", OracleDbType.Int32) { Direction = ParameterDirection.Output };
+                        command.Parameters.Add(outParameter);
+
+                        await command.ExecuteNonQueryAsync();
+
+                        return Convert.ToInt32(outParameter.Value.ToString());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error creando rol: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<bool> Actualizar(int id, RolUpdateRequest request)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    var updates = new List<string>();
+                    var command = (OracleCommand)connection.CreateCommand();
+
+                    if (!string.IsNullOrEmpty(request.NombreRol))
+                    {
+                        updates.Add("nombre_rol = :nombre_rol");
+                        command.Parameters.Add(new OracleParameter("nombre_rol", OracleDbType.Varchar2) { Value = request.NombreRol });
+                    }
+
+                    if (!string.IsNullOrEmpty(request.Descripcion))
+                    {
+                        updates.Add("descripcion = :descripcion");
+                        command.Parameters.Add(new OracleParameter("descripcion", OracleDbType.Varchar2) { Value = request.Descripcion });
+                    }
+
+                    if (!string.IsNullOrEmpty(request.Estado))
+                    {
+                        updates.Add("estado = :estado");
+                        command.Parameters.Add(new OracleParameter("estado", OracleDbType.Varchar2) { Value = request.Estado });
+                    }
+
+                    if (updates.Count == 0)
+                    {
+                        return false;
+                    }
+
+                    command.CommandText = $"UPDATE roles SET {string.Join(", ", updates)} WHERE id_rol = :id_rol";
+                    command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = id });
+
+                    var rowsAffected = await command.ExecuteNonQueryAsync();
+                    return rowsAffected > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error actualizando rol: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> Eliminar(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = "DELETE FROM roles WHERE id_rol = :id_rol";
+                        command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = id });
+
+                        var rowsAffected = await command.ExecuteNonQueryAsync();
+                        return rowsAffected > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error eliminando rol: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> AsignarRolAUsuario(int idUsuario, int idRol, int asignadoPor)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"INSERT INTO usuarios_roles (id_usuario_rol, id_usuario, id_rol, fecha_asignacion, asignado_por)
+                                               VALUES (seq_usuarios_roles.NEXTVAL, :id_usuario, :id_rol, SYSDATE, :asignado_por)";
+
+                        command.Parameters.Add(new OracleParameter("id_usuario", OracleDbType.Int32) { Value = idUsuario });
+                        command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = idRol });
+                        command.Parameters.Add(new OracleParameter("asignado_por", OracleDbType.Int32) { Value = asignadoPor });
+
+                        await command.ExecuteNonQueryAsync();
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error asignando rol a usuario: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> RemoverRolDeUsuario(int idUsuario, int idRol)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = "DELETE FROM usuarios_roles WHERE id_usuario = :id_usuario AND id_rol = :id_rol";
+                        command.Parameters.Add(new OracleParameter("id_usuario", OracleDbType.Int32) { Value = idUsuario });
+                        command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = idRol });
+
+                        var rowsAffected = await command.ExecuteNonQueryAsync();
+                        return rowsAffected > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error removiendo rol de usuario: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<UsuarioRolDto>> ObtenerRolesDeUsuario(int idUsuario)
+        {
+            var usuariosRoles = new List<UsuarioRolDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT ur.id_usuario_rol, ur.id_usuario, ur.id_rol,
+                                                      u.usuario, r.nombre_rol, ur.fecha_asignacion,
+                                                      ur.asignado_por, ua.usuario as asignado_por_nombre
+                                               FROM usuarios_roles ur
+                                               JOIN usuarios u ON ur.id_usuario = u.id_usuario
+                                               JOIN roles r ON ur.id_rol = r.id_rol
+                                               LEFT JOIN usuarios ua ON ur.asignado_por = ua.id_usuario
+                                               WHERE ur.id_usuario = :id_usuario";
+
+                        command.Parameters.Add(new OracleParameter("id_usuario", OracleDbType.Int32) { Value = idUsuario });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                usuariosRoles.Add(new UsuarioRolDto
+                                {
+                                    IdUsuarioRol = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdRol = reader.GetInt32(2),
+                                    NombreUsuario = reader.GetString(3),
+                                    NombreRol = reader.GetString(4),
+                                    FechaAsignacion = reader.GetDateTime(5),
+                                    AsignadoPor = reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                                    AsignadoPorNombre = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo roles de usuario: {ex.Message}");
+            }
+
+            return usuariosRoles;
+        }
+
+        public async Task<List<UsuarioRolDto>> ObtenerUsuariosConRol(int idRol)
+        {
+            var usuariosRoles = new List<UsuarioRolDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT ur.id_usuario_rol, ur.id_usuario, ur.id_rol,
+                                                      u.usuario, r.nombre_rol, ur.fecha_asignacion,
+                                                      ur.asignado_por, ua.usuario as asignado_por_nombre
+                                               FROM usuarios_roles ur
+                                               JOIN usuarios u ON ur.id_usuario = u.id_usuario
+                                               JOIN roles r ON ur.id_rol = r.id_rol
+                                               LEFT JOIN usuarios ua ON ur.asignado_por = ua.id_usuario
+                                               WHERE ur.id_rol = :id_rol";
+
+                        command.Parameters.Add(new OracleParameter("id_rol", OracleDbType.Int32) { Value = idRol });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                usuariosRoles.Add(new UsuarioRolDto
+                                {
+                                    IdUsuarioRol = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdRol = reader.GetInt32(2),
+                                    NombreUsuario = reader.GetString(3),
+                                    NombreRol = reader.GetString(4),
+                                    FechaAsignacion = reader.GetDateTime(5),
+                                    AsignadoPor = reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                                    AsignadoPorNombre = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo usuarios con rol: {ex.Message}");
+            }
+
+            return usuariosRoles;
         }
     }
 }
