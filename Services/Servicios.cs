@@ -65,6 +65,7 @@ namespace BACKEND_CREDITOS.Services
         Task<SaldoDto?> ObtenerSaldoActual(int idMoneda);
         Task<List<SaldoDto>> ObtenerSaldoConsolidado();
         Task<List<SaldoDto>> ObtenerHistoricoMoneda(int idMoneda, int dias = 30);
+        Task<List<SaldoUsuarioDto>> ObtenerSaldoPorUsuario(int idUsuario);
         Task<bool> ActualizarSaldos();
     }
 
@@ -1644,6 +1645,69 @@ namespace BACKEND_CREDITOS.Services
             catch (Exception ex)
             {
                 _logger.LogError($"Error obteniendo histórico de saldos para moneda {idMoneda}: {ex.Message}");
+            }
+
+            return saldos;
+        }
+
+        public async Task<List<SaldoUsuarioDto>> ObtenerSaldoPorUsuario(int idUsuario)
+        {
+            var saldos = new List<SaldoUsuarioDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT
+                                m.id_moneda,
+                                m.codigo_moneda,
+                                m.simbolo,
+                                COALESCE(SUM(i.capital_inicial), 0) as capital_invertido,
+                                COALESCE(SUM(p.capital_prestado), 0) as capital_prestamos
+                            FROM monedas m
+                            LEFT JOIN inversiones i ON m.id_moneda = i.id_moneda
+                                AND i.id_usuario = :idUsuario
+                                AND i.estado = 'VIGENTE'
+                            LEFT JOIN prestamos p ON m.id_moneda = p.id_moneda
+                                AND p.id_usuario = :idUsuario
+                                AND p.estado = 'VIGENTE'
+                            WHERE m.estado = 'ACTIVO'
+                            GROUP BY m.id_moneda, m.codigo_moneda, m.simbolo
+                            HAVING COALESCE(SUM(i.capital_inicial), 0) > 0 OR COALESCE(SUM(p.capital_prestado), 0) > 0
+                            ORDER BY m.codigo_moneda";
+
+                        command.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var capitalInvertido = reader.GetDecimal(3);
+                                var capitalPrestamos = reader.GetDecimal(4);
+
+                                saldos.Add(new SaldoUsuarioDto
+                                {
+                                    IdUsuario = idUsuario,
+                                    IdMoneda = reader.GetInt32(0),
+                                    CodigoMoneda = reader.GetString(1),
+                                    Simbolo = reader.GetString(2),
+                                    CapitalInvertido = capitalInvertido,
+                                    CapitalEnPrestamos = capitalPrestamos,
+                                    BalanceNeto = capitalInvertido - capitalPrestamos
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo saldo para usuario {idUsuario}: {ex.Message}");
             }
 
             return saldos;

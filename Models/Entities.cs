@@ -282,6 +282,17 @@
         public decimal CapitalTotal { get; set; }
     }
 
+    public class SaldoUsuarioDto
+    {
+        public int IdUsuario { get; set; }
+        public int IdMoneda { get; set; }
+        public string CodigoMoneda { get; set; } = string.Empty;
+        public string Simbolo { get; set; } = string.Empty;
+        public decimal CapitalInvertido { get; set; }
+        public decimal CapitalEnPrestamos { get; set; }
+        public decimal BalanceNeto { get; set; }
+    }
+
     // Respuestas genéricas
     public class ApiResponse<T>
     {

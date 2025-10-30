@@ -640,6 +640,36 @@ namespace BACKEND_CREDITOS.Controllers
             }
 
             /// <summary>
+            /// Obtener inversiones de un usuario específico
+            /// </summary>
+            [HttpGet("usuario/{idUsuario}")]
+            public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerInversionesUsuario(int idUsuario)
+            {
+                try
+                {
+                    var inversiones = await _inversionService.ObtenerTodas(idUsuario);
+
+                    return Ok(new ApiResponse<List<InversionDto>>
+                    {
+                        Exitoso = true,
+                        Mensaje = $"Se obtuvieron {inversiones.Count} inversiones",
+                        Datos = inversiones,
+                        Codigo = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error obteniendo inversiones del usuario");
+                    return StatusCode(500, new ApiResponse
+                    {
+                        Exitoso = false,
+                        Mensaje = "Error interno del servidor",
+                        Codigo = 500
+                    });
+                }
+            }
+
+            /// <summary>
             /// Obtener inversiones activas del usuario
             /// </summary>
             [HttpGet("activas")]
@@ -885,6 +915,36 @@ namespace BACKEND_CREDITOS.Controllers
             }
 
             /// <summary>
+            /// Obtener préstamos de un usuario específico
+            /// </summary>
+            [HttpGet("usuario/{idUsuario}")]
+            public async Task<ActionResult<ApiResponse<List<PrestamoDto>>>> ObtenerPrestamosUsuario(int idUsuario)
+            {
+                try
+                {
+                    var prestamos = await _prestamoService.ObtenerTodas(idUsuario);
+
+                    return Ok(new ApiResponse<List<PrestamoDto>>
+                    {
+                        Exitoso = true,
+                        Mensaje = $"Se obtuvieron {prestamos.Count} préstamos",
+                        Datos = prestamos,
+                        Codigo = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error obteniendo préstamos del usuario");
+                    return StatusCode(500, new ApiResponse
+                    {
+                        Exitoso = false,
+                        Mensaje = "Error interno del servidor",
+                        Codigo = 500
+                    });
+                }
+            }
+
+            /// <summary>
             /// Obtener préstamos activos
             /// </summary>
             [HttpGet("activos")]
@@ -1026,6 +1086,36 @@ namespace BACKEND_CREDITOS.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error obteniendo saldo");
+                    return StatusCode(500, new ApiResponse
+                    {
+                        Exitoso = false,
+                        Mensaje = "Error interno del servidor",
+                        Codigo = 500
+                    });
+                }
+            }
+
+            /// <summary>
+            /// Obtener saldo de un usuario específico
+            /// </summary>
+            [HttpGet("usuario/{idUsuario}")]
+            public async Task<ActionResult<ApiResponse<List<SaldoUsuarioDto>>>> ObtenerSaldoUsuario(int idUsuario)
+            {
+                try
+                {
+                    var saldos = await _saldoService.ObtenerSaldoPorUsuario(idUsuario);
+
+                    return Ok(new ApiResponse<List<SaldoUsuarioDto>>
+                    {
+                        Exitoso = true,
+                        Mensaje = $"Saldo de usuario obtenido",
+                        Datos = saldos,
+                        Codigo = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error obteniendo saldo del usuario");
                     return StatusCode(500, new ApiResponse
                     {
                         Exitoso = false,
