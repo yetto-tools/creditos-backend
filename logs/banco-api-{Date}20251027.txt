@@ -1,0 +1,123 @@
+2025-10-27 23:16:36.558 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:16:37.614 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:16:37.630 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:16:37.639 -06:00 [INF] Creating key {c2edd563-846a-4b3f-8fe3-bb33766f683e} with creation date 2025-10-28 05:16:37Z, activation date 2025-10-28 05:16:37Z, and expiration date 2026-01-26 05:16:37Z.
+2025-10-27 23:16:37.650 -06:00 [INF] Writing data to file 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys\key-c2edd563-846a-4b3f-8fe3-bb33766f683e.xml'.
+2025-10-27 23:16:37.844 -06:00 [INF] Now listening on: https://localhost:7037
+2025-10-27 23:16:37.846 -06:00 [INF] Now listening on: http://localhost:5157
+2025-10-27 23:16:37.884 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:16:37.885 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:16:37.886 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:16:38.620 -06:00 [INF] Request starting HTTP/2 GET https://localhost:7037/swagger - null null
+2025-10-27 23:16:38.770 -06:00 [INF] Request finished HTTP/2 GET https://localhost:7037/swagger - 404 0 null 152.6697ms
+2025-10-27 23:16:38.774 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:7037/swagger, Response status code: 404
+2025-10-27 23:17:26.302 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:17:26.980 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:17:26.989 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:17:27.113 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger - null null
+2025-10-27 23:17:27.139 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:17:27.142 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:17:27.145 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:17:27.260 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger - 404 null null 151.0312ms
+2025-10-27 23:17:27.263 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:44353/swagger, Response status code: 404
+2025-10-27 23:17:42.845 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:17:43.469 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:17:43.483 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:17:43.602 -06:00 [INF] Now listening on: https://localhost:7037
+2025-10-27 23:17:43.603 -06:00 [INF] Now listening on: http://localhost:5157
+2025-10-27 23:17:43.706 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:17:43.707 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:17:43.708 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:17:43.822 -06:00 [INF] Request starting HTTP/2 GET https://localhost:7037/swagger - null null
+2025-10-27 23:17:43.942 -06:00 [INF] Request finished HTTP/2 GET https://localhost:7037/swagger - 404 0 null 122.5303ms
+2025-10-27 23:17:43.947 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:7037/swagger, Response status code: 404
+2025-10-27 23:18:38.742 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:18:39.397 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:18:39.419 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:18:39.573 -06:00 [INF] Now listening on: https://localhost:7037
+2025-10-27 23:18:39.574 -06:00 [INF] Now listening on: http://localhost:5157
+2025-10-27 23:18:39.606 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:18:39.607 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:18:39.608 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:18:40.431 -06:00 [INF] Request starting HTTP/2 GET https://localhost:7037/swagger - null null
+2025-10-27 23:18:40.561 -06:00 [INF] Request finished HTTP/2 GET https://localhost:7037/swagger - 404 0 null 133.6185ms
+2025-10-27 23:18:40.565 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:7037/swagger, Response status code: 404
+2025-10-27 23:19:35.350 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:19:35.610 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:19:35.624 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:19:35.698 -06:00 [INF] Now listening on: https://localhost:7037
+2025-10-27 23:19:35.699 -06:00 [INF] Now listening on: http://localhost:5157
+2025-10-27 23:19:35.723 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:19:35.724 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:19:35.725 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:19:36.174 -06:00 [INF] Request starting HTTP/2 GET https://localhost:7037/swagger - null null
+2025-10-27 23:19:36.252 -06:00 [INF] Request finished HTTP/2 GET https://localhost:7037/swagger - 404 0 null 78.4812ms
+2025-10-27 23:19:36.259 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:7037/swagger, Response status code: 404
+2025-10-27 23:19:49.177 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:19:49.794 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:19:49.804 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:19:49.931 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger - null null
+2025-10-27 23:19:49.957 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:19:49.957 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:19:49.958 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:19:50.095 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger - 404 null null 167.3467ms
+2025-10-27 23:19:50.099 -06:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:44353/swagger, Response status code: 404
+2025-10-27 23:21:19.852 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:21:20.648 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:21:20.657 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:21:20.777 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger - null null
+2025-10-27 23:21:20.803 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:21:20.803 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:21:20.803 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:21:20.890 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/index.html - null null
+2025-10-27 23:21:20.949 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger - 301 null null 171.3077ms
+2025-10-27 23:21:20.996 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/index.html - 200 null text/html;charset=utf-8 105.7073ms
+2025-10-27 23:21:21.004 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/swagger-ui.css - null null
+2025-10-27 23:21:21.004 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/swagger-ui-standalone-preset.js - null null
+2025-10-27 23:21:21.004 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/swagger-ui-bundle.js - null null
+2025-10-27 23:21:21.022 -06:00 [INF] Sending file. Request path: '/swagger-ui-standalone-preset.js'. Physical path: 'N/A'
+2025-10-27 23:21:21.022 -06:00 [INF] Sending file. Request path: '/swagger-ui.css'. Physical path: 'N/A'
+2025-10-27 23:21:21.025 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/swagger-ui.css - 200 152034 text/css 20.454ms
+2025-10-27 23:21:21.028 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/swagger-ui-standalone-preset.js - 200 230280 text/javascript 23.4012ms
+2025-10-27 23:21:21.028 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/_framework/aspnetcore-browser-refresh.js - null null
+2025-10-27 23:21:21.030 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/_framework/aspnetcore-browser-refresh.js - 200 16517 application/javascript; charset=utf-8 1.9619ms
+2025-10-27 23:21:21.037 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/_vs/browserLink - null null
+2025-10-27 23:21:21.038 -06:00 [INF] Sending file. Request path: '/swagger-ui-bundle.js'. Physical path: 'N/A'
+2025-10-27 23:21:21.060 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/swagger-ui-bundle.js - 200 1456926 text/javascript 55.8453ms
+2025-10-27 23:21:21.082 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/_vs/browserLink - 200 null text/javascript; charset=UTF-8 45.7912ms
+2025-10-27 23:21:21.185 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/v1/swagger.json - null null
+2025-10-27 23:21:21.187 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/favicon-32x32.png - null null
+2025-10-27 23:21:21.188 -06:00 [INF] Sending file. Request path: '/favicon-32x32.png'. Physical path: 'N/A'
+2025-10-27 23:21:21.188 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/favicon-32x32.png - 200 628 image/png 1.4879ms
+2025-10-27 23:21:21.202 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 17.8642ms
+2025-10-27 23:23:13.147 -06:00 [INF] Request starting HTTP/2 POST https://localhost:44353/api/Auth/registrar - application/json 160
+2025-10-27 23:23:13.166 -06:00 [INF] CORS policy execution successful.
+2025-10-27 23:23:13.207 -06:00 [INF] Executing endpoint 'BACKEND_CREDITOS.Controllers.AuthController.Registrar (BACKEND_CREDITOS)'
+2025-10-27 23:23:13.218 -06:00 [INF] Route matched with {action = "Registrar", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[BACKEND_CREDITOS.Models.ApiResponse]] Registrar(BACKEND_CREDITOS.Models.UsuarioRegistroRequest) on controller BACKEND_CREDITOS.Controllers.AuthController (BACKEND_CREDITOS).
+2025-10-27 23:23:16.038 -06:00 [INF] Executing OkObjectResult, writing value of type 'BACKEND_CREDITOS.Models.ApiResponse'.
+2025-10-27 23:23:16.043 -06:00 [INF] Executed action BACKEND_CREDITOS.Controllers.AuthController.Registrar (BACKEND_CREDITOS) in 2822.9742ms
+2025-10-27 23:23:16.043 -06:00 [INF] Executed endpoint 'BACKEND_CREDITOS.Controllers.AuthController.Registrar (BACKEND_CREDITOS)'
+2025-10-27 23:23:16.045 -06:00 [INF] Request finished HTTP/2 POST https://localhost:44353/api/Auth/registrar - 200 null application/json; charset=utf-8 2897.9271ms
+2025-10-27 23:29:14.422 -06:00 [INF] Iniciando API REST - Sistema de Operaciones Financieras Bancarias
+2025-10-27 23:29:15.151 -06:00 [INF] API iniciada correctamente
+2025-10-27 23:29:15.161 -06:00 [INF] User profile is available. Using 'C:\Users\Erick\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-10-27 23:29:15.284 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/index.html - null null
+2025-10-27 23:29:15.316 -06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-27 23:29:15.316 -06:00 [INF] Hosting environment: Development
+2025-10-27 23:29:15.319 -06:00 [INF] Content root path: C:\Users\Erick\source\repos\BACKEND_CREDITOS
+2025-10-27 23:29:15.441 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/index.html - 200 null text/html;charset=utf-8 159.4594ms
+2025-10-27 23:29:15.451 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/_framework/aspnetcore-browser-refresh.js - null null
+2025-10-27 23:29:15.454 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/_framework/aspnetcore-browser-refresh.js - 200 16517 application/javascript; charset=utf-8 2.7164ms
+2025-10-27 23:29:15.459 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/_vs/browserLink - null null
+2025-10-27 23:29:15.488 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/_vs/browserLink - 200 null text/javascript; charset=UTF-8 29.6388ms
+2025-10-27 23:29:15.593 -06:00 [INF] Request starting HTTP/2 GET https://localhost:44353/swagger/v1/swagger.json - null null
+2025-10-27 23:29:15.610 -06:00 [INF] Request finished HTTP/2 GET https://localhost:44353/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 17.9651ms
+2025-10-27 23:29:36.790 -06:00 [INF] Request starting HTTP/2 POST https://localhost:44353/api/Auth/login - application/json 50
+2025-10-27 23:29:36.807 -06:00 [INF] CORS policy execution successful.
+2025-10-27 23:29:36.858 -06:00 [INF] Executing endpoint 'BACKEND_CREDITOS.Controllers.AuthController.Login (BACKEND_CREDITOS)'
+2025-10-27 23:29:36.870 -06:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[BACKEND_CREDITOS.Models.ApiResponse`1[BACKEND_CREDITOS.Models.UsuarioLoginResponse]]] Login(BACKEND_CREDITOS.Models.UsuarioLoginRequest) on controller BACKEND_CREDITOS.Controllers.AuthController (BACKEND_CREDITOS).
+2025-10-27 23:29:39.467 -06:00 [INF] Login exitoso para usuario: admin
+2025-10-27 23:29:39.479 -06:00 [INF] Executing OkObjectResult, writing value of type 'BACKEND_CREDITOS.Models.ApiResponse`1[[BACKEND_CREDITOS.Models.UsuarioLoginResponse, BACKEND_CREDITOS, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2025-10-27 23:29:39.486 -06:00 [INF] Executed action BACKEND_CREDITOS.Controllers.AuthController.Login (BACKEND_CREDITOS) in 2614.9785ms
+2025-10-27 23:29:39.487 -06:00 [INF] Executed endpoint 'BACKEND_CREDITOS.Controllers.AuthController.Login (BACKEND_CREDITOS)'
+2025-10-27 23:29:39.488 -06:00 [INF] Request finished HTTP/2 POST https://localhost:44353/api/Auth/login - 200 null application/json; charset=utf-8 2698.1454ms
