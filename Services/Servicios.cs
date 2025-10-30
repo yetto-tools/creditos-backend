@@ -616,13 +616,469 @@ namespace BACKEND_CREDITOS.Services
             _logger = logger;
         }
 
-        public async Task<int> Crear(int idUsuario, InversionCreateRequest request) => 0;
-        public async Task<InversionDto?> ObtenerPorId(int id) => null;
-        public async Task<List<InversionDto>> ObtenerTodas(int? idUsuario = null) => new();
-        public async Task<List<InversionDto>> ObtenerActivas(int? idUsuario = null) => new();
-        public async Task<List<PagoInversionDto>> ObtenerPagos(int idInversion) => new();
-        public async Task<bool> Cancelar(int id) => false;
-        public async Task<bool> ActualizarEstados() => false;
+        public async Task<int> Crear(int idUsuario, InversionCreateRequest request)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // Validar moneda
+                    using (var cmdValidar = (OracleCommand)connection.CreateCommand())
+                    {
+                        cmdValidar.CommandText = "SELECT COUNT(*) FROM monedas WHERE id_moneda = :idMoneda AND estado = 'ACTIVO'";
+                        cmdValidar.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = request.IdMoneda });
+                        var count = (decimal)await cmdValidar.ExecuteScalarAsync()!;
+                        if (count == 0)
+                        {
+                            _logger.LogWarning($"Moneda {request.IdMoneda} no encontrada o inactiva");
+                            return 0;
+                        }
+                    }
+
+                    // Calcular fechas y montos
+                    var fechaInicio = DateTime.Now;
+                    var fechaVencimiento = fechaInicio.AddDays(request.PlazoDias);
+
+                    // Interés simple: Interés = Capital * Tasa * Tiempo
+                    var interesTotal = request.CapitalInicial * (request.TasaInteres / 100) * (request.PlazoDias / 365m);
+                    var montoTotal = request.CapitalInicial + interesTotal;
+
+                    // Insertar inversión
+                    int idInversion = 0;
+                    using (var cmdInversion = (OracleCommand)connection.CreateCommand())
+                    {
+                        cmdInversion.CommandText = @"
+                            INSERT INTO inversiones (
+                                id_inversion, id_usuario, id_moneda, capital_inicial, tasa_interes,
+                                plazo_dias, modalidad_pago, fecha_inicio, fecha_vencimiento,
+                                interes_total_proyectado, monto_total_a_recibir, estado,
+                                fecha_creacion, observaciones
+                            ) VALUES (
+                                seq_inversiones.NEXTVAL, :idUsuario, :idMoneda, :capitalInicial, :tasaInteres,
+                                :plazoDias, :modalidadPago, :fechaInicio, :fechaVencimiento,
+                                :interesTotal, :montoTotal, 'VIGENTE',
+                                SYSDATE, :observaciones
+                            ) RETURNING id_inversion INTO :idInversion";
+
+                        cmdInversion.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario });
+                        cmdInversion.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = request.IdMoneda });
+                        cmdInversion.Parameters.Add(new OracleParameter("capitalInicial", OracleDbType.Decimal) { Value = request.CapitalInicial });
+                        cmdInversion.Parameters.Add(new OracleParameter("tasaInteres", OracleDbType.Decimal) { Value = request.TasaInteres });
+                        cmdInversion.Parameters.Add(new OracleParameter("plazoDias", OracleDbType.Int32) { Value = request.PlazoDias });
+                        cmdInversion.Parameters.Add(new OracleParameter("modalidadPago", OracleDbType.Varchar2) { Value = request.ModalidadPago });
+                        cmdInversion.Parameters.Add(new OracleParameter("fechaInicio", OracleDbType.Date) { Value = fechaInicio });
+                        cmdInversion.Parameters.Add(new OracleParameter("fechaVencimiento", OracleDbType.Date) { Value = fechaVencimiento });
+                        cmdInversion.Parameters.Add(new OracleParameter("interesTotal", OracleDbType.Decimal) { Value = interesTotal });
+                        cmdInversion.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
+                        cmdInversion.Parameters.Add(new OracleParameter("observaciones", OracleDbType.Varchar2) { Value = request.Observaciones ?? "" });
+
+                        var outParam = new OracleParameter("idInversion", OracleDbType.Int32) { Direction = ParameterDirection.Output };
+                        cmdInversion.Parameters.Add(outParam);
+
+                        await cmdInversion.ExecuteNonQueryAsync();
+                        idInversion = ((OracleDecimal)outParam.Value).ToInt32();
+                    }
+
+                    // Crear pagos programados
+                    if (idInversion > 0)
+                    {
+                        if (request.ModalidadPago == "MENSUAL")
+                        {
+                            // Pagos mensuales (solo intereses, capital al final)
+                            int numeroPagos = (int)Math.Ceiling(request.PlazoDias / 30.0);
+                            decimal interesMensual = interesTotal / numeroPagos;
+
+                            for (int i = 1; i <= numeroPagos; i++)
+                            {
+                                var fechaPago = fechaInicio.AddMonths(i);
+                                decimal capitalPago = (i == numeroPagos) ? request.CapitalInicial : 0;
+                                decimal interesPago = interesMensual;
+                                decimal montoTotalPago = capitalPago + interesPago;
+
+                                await InsertarPagoInversion(connection, idInversion, i, capitalPago, interesPago, montoTotalPago, fechaPago);
+                            }
+                        }
+                        else // FINAL
+                        {
+                            // Un solo pago al final con capital + intereses
+                            await InsertarPagoInversion(connection, idInversion, 1, request.CapitalInicial, interesTotal, montoTotal, fechaVencimiento);
+                        }
+                    }
+
+                    _logger.LogInformation($"Inversión {idInversion} creada exitosamente");
+                    return idInversion;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error creando inversión: {ex.Message}");
+                return 0;
+            }
+        }
+
+        private async Task InsertarPagoInversion(OracleConnection connection, int idInversion, int numeroPago,
+            decimal capital, decimal interes, decimal montoTotal, DateTime fechaProgramada)
+        {
+            using (var cmd = (OracleCommand)connection.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO pagos_inversion (
+                        id_pago_inversion, id_inversion, numero_pago, capital_pagado,
+                        interes_pagado, monto_total_pagado, fecha_programada,
+                        estado_pago, fecha_creacion
+                    ) VALUES (
+                        seq_pagos_inversion.NEXTVAL, :idInversion, :numeroPago, :capital,
+                        :interes, :montoTotal, :fechaProgramada,
+                        'PENDIENTE', SYSDATE
+                    )";
+
+                cmd.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = idInversion });
+                cmd.Parameters.Add(new OracleParameter("numeroPago", OracleDbType.Int32) { Value = numeroPago });
+                cmd.Parameters.Add(new OracleParameter("capital", OracleDbType.Decimal) { Value = capital });
+                cmd.Parameters.Add(new OracleParameter("interes", OracleDbType.Decimal) { Value = interes });
+                cmd.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
+                cmd.Parameters.Add(new OracleParameter("fechaProgramada", OracleDbType.Date) { Value = fechaProgramada });
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<InversionDto?> ObtenerPorId(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT i.id_inversion, i.id_usuario, i.id_moneda, m.codigo_moneda, m.simbolo,
+                                   i.capital_inicial, i.tasa_interes, i.plazo_dias, i.modalidad_pago,
+                                   i.fecha_inicio, i.fecha_vencimiento, i.interes_total_proyectado,
+                                   i.monto_total_a_recibir, i.estado
+                            FROM inversiones i
+                            JOIN monedas m ON i.id_moneda = m.id_moneda
+                            WHERE i.id_inversion = :idInversion";
+
+                        command.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = id });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(10);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                return new InversionDto
+                                {
+                                    IdInversion = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    CapitalInicial = reader.GetDecimal(5),
+                                    TasaInteres = reader.GetDecimal(6),
+                                    PlazoDias = reader.GetInt32(7),
+                                    ModalidadPago = reader.GetString(8),
+                                    FechaInicio = reader.GetDateTime(9),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(11),
+                                    MontoTotalARecibir = reader.GetDecimal(12),
+                                    Estado = reader.GetString(13),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo inversión {id}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public async Task<List<InversionDto>> ObtenerTodas(int? idUsuario = null)
+        {
+            var inversiones = new List<InversionDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        var sql = @"
+                            SELECT i.id_inversion, i.id_usuario, i.id_moneda, m.codigo_moneda, m.simbolo,
+                                   i.capital_inicial, i.tasa_interes, i.plazo_dias, i.modalidad_pago,
+                                   i.fecha_inicio, i.fecha_vencimiento, i.interes_total_proyectado,
+                                   i.monto_total_a_recibir, i.estado
+                            FROM inversiones i
+                            JOIN monedas m ON i.id_moneda = m.id_moneda";
+
+                        if (idUsuario.HasValue)
+                        {
+                            sql += " WHERE i.id_usuario = :idUsuario";
+                            command.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario.Value });
+                        }
+
+                        sql += " ORDER BY i.fecha_creacion DESC";
+                        command.CommandText = sql;
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(10);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                inversiones.Add(new InversionDto
+                                {
+                                    IdInversion = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    CapitalInicial = reader.GetDecimal(5),
+                                    TasaInteres = reader.GetDecimal(6),
+                                    PlazoDias = reader.GetInt32(7),
+                                    ModalidadPago = reader.GetString(8),
+                                    FechaInicio = reader.GetDateTime(9),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(11),
+                                    MontoTotalARecibir = reader.GetDecimal(12),
+                                    Estado = reader.GetString(13),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo inversiones: {ex.Message}");
+            }
+
+            return inversiones;
+        }
+
+        public async Task<List<InversionDto>> ObtenerActivas(int? idUsuario = null)
+        {
+            var inversiones = new List<InversionDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        var sql = @"
+                            SELECT i.id_inversion, i.id_usuario, i.id_moneda, m.codigo_moneda, m.simbolo,
+                                   i.capital_inicial, i.tasa_interes, i.plazo_dias, i.modalidad_pago,
+                                   i.fecha_inicio, i.fecha_vencimiento, i.interes_total_proyectado,
+                                   i.monto_total_a_recibir, i.estado
+                            FROM inversiones i
+                            JOIN monedas m ON i.id_moneda = m.id_moneda
+                            WHERE i.estado = 'VIGENTE'";
+
+                        if (idUsuario.HasValue)
+                        {
+                            sql += " AND i.id_usuario = :idUsuario";
+                            command.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario.Value });
+                        }
+
+                        sql += " ORDER BY i.fecha_vencimiento ASC";
+                        command.CommandText = sql;
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(10);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                inversiones.Add(new InversionDto
+                                {
+                                    IdInversion = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    CapitalInicial = reader.GetDecimal(5),
+                                    TasaInteres = reader.GetDecimal(6),
+                                    PlazoDias = reader.GetInt32(7),
+                                    ModalidadPago = reader.GetString(8),
+                                    FechaInicio = reader.GetDateTime(9),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(11),
+                                    MontoTotalARecibir = reader.GetDecimal(12),
+                                    Estado = reader.GetString(13),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo inversiones activas: {ex.Message}");
+            }
+
+            return inversiones;
+        }
+
+        public async Task<List<PagoInversionDto>> ObtenerPagos(int idInversion)
+        {
+            var pagos = new List<PagoInversionDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT id_pago_inversion, numero_pago, capital_pagado, interes_pagado,
+                                   monto_total_pagado, fecha_programada, fecha_pago, estado_pago
+                            FROM pagos_inversion
+                            WHERE id_inversion = :idInversion
+                            ORDER BY numero_pago";
+
+                        command.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = idInversion });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                pagos.Add(new PagoInversionDto
+                                {
+                                    IdPagoInversion = reader.GetInt32(0),
+                                    NumeroPago = reader.GetInt32(1),
+                                    CapitalPagado = reader.GetDecimal(2),
+                                    InteresPagado = reader.GetDecimal(3),
+                                    MontoTotalPagado = reader.GetDecimal(4),
+                                    FechaProgramada = reader.GetDateTime(5),
+                                    FechaPago = reader.IsDBNull(6) ? null : reader.GetDateTime(6),
+                                    EstadoPago = reader.GetString(7)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo pagos de inversión {idInversion}: {ex.Message}");
+            }
+
+            return pagos;
+        }
+
+        public async Task<bool> Cancelar(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE inversiones
+                            SET estado = 'CANCELADA'
+                            WHERE id_inversion = :idInversion AND estado = 'VIGENTE'";
+
+                        command.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = id });
+
+                        var result = await command.ExecuteNonQueryAsync();
+
+                        if (result > 0)
+                        {
+                            // Cancelar pagos pendientes
+                            using (var cmdPagos = (OracleCommand)connection.CreateCommand())
+                            {
+                                cmdPagos.CommandText = @"
+                                    UPDATE pagos_inversion
+                                    SET estado_pago = 'CANCELADO'
+                                    WHERE id_inversion = :idInversion AND estado_pago = 'PENDIENTE'";
+
+                                cmdPagos.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = id });
+                                await cmdPagos.ExecuteNonQueryAsync();
+                            }
+
+                            _logger.LogInformation($"Inversión {id} cancelada");
+                            return true;
+                        }
+
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error cancelando inversión {id}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ActualizarEstados()
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // Actualizar inversiones vencidas
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE inversiones
+                            SET estado = 'VENCIDA'
+                            WHERE estado = 'VIGENTE'
+                            AND fecha_vencimiento < SYSDATE";
+
+                        var result = await command.ExecuteNonQueryAsync();
+                        _logger.LogInformation($"{result} inversiones actualizadas a VENCIDA");
+                    }
+
+                    // Actualizar pagos vencidos
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE pagos_inversion
+                            SET estado_pago = 'VENCIDO'
+                            WHERE estado_pago = 'PENDIENTE'
+                            AND fecha_programada < SYSDATE";
+
+                        var result = await command.ExecuteNonQueryAsync();
+                        _logger.LogInformation($"{result} pagos de inversión actualizados a VENCIDO");
+                    }
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error actualizando estados de inversiones: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     public class PrestamoService : IPrestamoService
@@ -636,13 +1092,471 @@ namespace BACKEND_CREDITOS.Services
             _logger = logger;
         }
 
-        public async Task<int> Crear(int idUsuario, PrestamoCreateRequest request) => 0;
-        public async Task<PrestamoDto?> ObtenerPorId(int id) => null;
-        public async Task<List<PrestamoDto>> ObtenerTodas(int? idUsuario = null) => new();
-        public async Task<List<PrestamoDto>> ObtenerActivos(int? idUsuario = null) => new();
-        public async Task<List<PagoPrestamoDto>> ObtenerPagos(int idPrestamo) => new();
-        public async Task<bool> Cancelar(int id) => false;
-        public async Task<bool> ActualizarEstados() => false;
+        public async Task<int> Crear(int idUsuario, PrestamoCreateRequest request)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // Validar moneda
+                    using (var cmdValidar = (OracleCommand)connection.CreateCommand())
+                    {
+                        cmdValidar.CommandText = "SELECT COUNT(*) FROM monedas WHERE id_moneda = :idMoneda AND estado = 'ACTIVO'";
+                        cmdValidar.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = request.IdMoneda });
+                        var count = (decimal)await cmdValidar.ExecuteScalarAsync()!;
+                        if (count == 0)
+                        {
+                            _logger.LogWarning($"Moneda {request.IdMoneda} no encontrada o inactiva");
+                            return 0;
+                        }
+                    }
+
+                    // Calcular fechas y montos
+                    var fechaInicio = DateTime.Now;
+                    var fechaVencimiento = fechaInicio.AddDays(request.PlazoDias);
+
+                    // Interés simple: Interés = Capital * Tasa * Tiempo
+                    var interesTotal = request.CapitalPrestado * (request.TasaInteres / 100) * (request.PlazoDias / 365m);
+                    var montoTotal = request.CapitalPrestado + interesTotal;
+
+                    // Insertar préstamo
+                    int idPrestamo = 0;
+                    using (var cmdPrestamo = (OracleCommand)connection.CreateCommand())
+                    {
+                        cmdPrestamo.CommandText = @"
+                            INSERT INTO prestamos (
+                                id_prestamo, id_usuario, id_moneda, entidad_financiera, capital_prestado,
+                                tasa_interes, plazo_dias, modalidad_pago, fecha_inicio, fecha_vencimiento,
+                                interes_total_proyectado, monto_total_a_pagar, estado,
+                                fecha_creacion, observaciones
+                            ) VALUES (
+                                seq_prestamos.NEXTVAL, :idUsuario, :idMoneda, :entidadFinanciera, :capitalPrestado,
+                                :tasaInteres, :plazoDias, :modalidadPago, :fechaInicio, :fechaVencimiento,
+                                :interesTotal, :montoTotal, 'VIGENTE',
+                                SYSDATE, :observaciones
+                            ) RETURNING id_prestamo INTO :idPrestamo";
+
+                        cmdPrestamo.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = request.IdMoneda });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("entidadFinanciera", OracleDbType.Varchar2) { Value = request.EntidadFinanciera ?? "" });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("capitalPrestado", OracleDbType.Decimal) { Value = request.CapitalPrestado });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("tasaInteres", OracleDbType.Decimal) { Value = request.TasaInteres });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("plazoDias", OracleDbType.Int32) { Value = request.PlazoDias });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("modalidadPago", OracleDbType.Varchar2) { Value = request.ModalidadPago });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("fechaInicio", OracleDbType.Date) { Value = fechaInicio });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("fechaVencimiento", OracleDbType.Date) { Value = fechaVencimiento });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("interesTotal", OracleDbType.Decimal) { Value = interesTotal });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
+                        cmdPrestamo.Parameters.Add(new OracleParameter("observaciones", OracleDbType.Varchar2) { Value = request.Observaciones ?? "" });
+
+                        var outParam = new OracleParameter("idPrestamo", OracleDbType.Int32) { Direction = ParameterDirection.Output };
+                        cmdPrestamo.Parameters.Add(outParam);
+
+                        await cmdPrestamo.ExecuteNonQueryAsync();
+                        idPrestamo = ((OracleDecimal)outParam.Value).ToInt32();
+                    }
+
+                    // Crear pagos programados
+                    if (idPrestamo > 0)
+                    {
+                        if (request.ModalidadPago == "MENSUAL")
+                        {
+                            // Pagos mensuales con amortización
+                            int numeroPagos = (int)Math.Ceiling(request.PlazoDias / 30.0);
+                            decimal pagoMensual = montoTotal / numeroPagos;
+                            decimal capitalPorPago = request.CapitalPrestado / numeroPagos;
+                            decimal interesPorPago = interesTotal / numeroPagos;
+
+                            for (int i = 1; i <= numeroPagos; i++)
+                            {
+                                var fechaPago = fechaInicio.AddMonths(i);
+                                await InsertarPagoPrestamo(connection, idPrestamo, i, capitalPorPago, interesPorPago, pagoMensual, fechaPago);
+                            }
+                        }
+                        else // FINAL
+                        {
+                            // Un solo pago al final con capital + intereses
+                            await InsertarPagoPrestamo(connection, idPrestamo, 1, request.CapitalPrestado, interesTotal, montoTotal, fechaVencimiento);
+                        }
+                    }
+
+                    _logger.LogInformation($"Préstamo {idPrestamo} creado exitosamente");
+                    return idPrestamo;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error creando préstamo: {ex.Message}");
+                return 0;
+            }
+        }
+
+        private async Task InsertarPagoPrestamo(OracleConnection connection, int idPrestamo, int numeroPago,
+            decimal capital, decimal interes, decimal montoTotal, DateTime fechaProgramada)
+        {
+            using (var cmd = (OracleCommand)connection.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO pagos_prestamo (
+                        id_pago_prestamo, id_prestamo, numero_pago, capital_pagado,
+                        interes_pagado, monto_total_pagado, fecha_programada,
+                        estado_pago, fecha_creacion
+                    ) VALUES (
+                        seq_pagos_prestamo.NEXTVAL, :idPrestamo, :numeroPago, :capital,
+                        :interes, :montoTotal, :fechaProgramada,
+                        'PENDIENTE', SYSDATE
+                    )";
+
+                cmd.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = idPrestamo });
+                cmd.Parameters.Add(new OracleParameter("numeroPago", OracleDbType.Int32) { Value = numeroPago });
+                cmd.Parameters.Add(new OracleParameter("capital", OracleDbType.Decimal) { Value = capital });
+                cmd.Parameters.Add(new OracleParameter("interes", OracleDbType.Decimal) { Value = interes });
+                cmd.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
+                cmd.Parameters.Add(new OracleParameter("fechaProgramada", OracleDbType.Date) { Value = fechaProgramada });
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<PrestamoDto?> ObtenerPorId(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
+                                   p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
+                                   p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
+                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                            FROM prestamos p
+                            JOIN monedas m ON p.id_moneda = m.id_moneda
+                            WHERE p.id_prestamo = :idPrestamo";
+
+                        command.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = id });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(11);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                return new PrestamoDto
+                                {
+                                    IdPrestamo = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    EntidadFinanciera = reader.GetString(5),
+                                    CapitalPrestado = reader.GetDecimal(6),
+                                    TasaInteres = reader.GetDecimal(7),
+                                    PlazoDias = reader.GetInt32(8),
+                                    ModalidadPago = reader.GetString(9),
+                                    FechaInicio = reader.GetDateTime(10),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(12),
+                                    MontoTotalARecibir = reader.GetDecimal(13),
+                                    Estado = reader.GetString(14),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo préstamo {id}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public async Task<List<PrestamoDto>> ObtenerTodas(int? idUsuario = null)
+        {
+            var prestamos = new List<PrestamoDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        var sql = @"
+                            SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
+                                   p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
+                                   p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
+                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                            FROM prestamos p
+                            JOIN monedas m ON p.id_moneda = m.id_moneda";
+
+                        if (idUsuario.HasValue)
+                        {
+                            sql += " WHERE p.id_usuario = :idUsuario";
+                            command.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario.Value });
+                        }
+
+                        sql += " ORDER BY p.fecha_creacion DESC";
+                        command.CommandText = sql;
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(11);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                prestamos.Add(new PrestamoDto
+                                {
+                                    IdPrestamo = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    EntidadFinanciera = reader.GetString(5),
+                                    CapitalPrestado = reader.GetDecimal(6),
+                                    TasaInteres = reader.GetDecimal(7),
+                                    PlazoDias = reader.GetInt32(8),
+                                    ModalidadPago = reader.GetString(9),
+                                    FechaInicio = reader.GetDateTime(10),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(12),
+                                    MontoTotalARecibir = reader.GetDecimal(13),
+                                    Estado = reader.GetString(14),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo préstamos: {ex.Message}");
+            }
+
+            return prestamos;
+        }
+
+        public async Task<List<PrestamoDto>> ObtenerActivos(int? idUsuario = null)
+        {
+            var prestamos = new List<PrestamoDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        var sql = @"
+                            SELECT p.id_prestamo, p.id_usuario, p.id_moneda, m.codigo_moneda, m.simbolo,
+                                   p.entidad_financiera, p.capital_prestado, p.tasa_interes, p.plazo_dias,
+                                   p.modalidad_pago, p.fecha_inicio, p.fecha_vencimiento,
+                                   p.interes_total_proyectado, p.monto_total_a_pagar, p.estado
+                            FROM prestamos p
+                            JOIN monedas m ON p.id_moneda = m.id_moneda
+                            WHERE p.estado = 'VIGENTE'";
+
+                        if (idUsuario.HasValue)
+                        {
+                            sql += " AND p.id_usuario = :idUsuario";
+                            command.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario.Value });
+                        }
+
+                        sql += " ORDER BY p.fecha_vencimiento ASC";
+                        command.CommandText = sql;
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var fechaVencimiento = reader.GetDateTime(11);
+                                var diasRestantes = (fechaVencimiento - DateTime.Now).Days;
+
+                                prestamos.Add(new PrestamoDto
+                                {
+                                    IdPrestamo = reader.GetInt32(0),
+                                    IdUsuario = reader.GetInt32(1),
+                                    IdMoneda = reader.GetInt32(2),
+                                    CodigoMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    EntidadFinanciera = reader.GetString(5),
+                                    CapitalPrestado = reader.GetDecimal(6),
+                                    TasaInteres = reader.GetDecimal(7),
+                                    PlazoDias = reader.GetInt32(8),
+                                    ModalidadPago = reader.GetString(9),
+                                    FechaInicio = reader.GetDateTime(10),
+                                    FechaVencimiento = fechaVencimiento,
+                                    InteresTotalProyectado = reader.GetDecimal(12),
+                                    MontoTotalARecibir = reader.GetDecimal(13),
+                                    Estado = reader.GetString(14),
+                                    DiasRestantes = diasRestantes < 0 ? 0 : diasRestantes
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo préstamos activos: {ex.Message}");
+            }
+
+            return prestamos;
+        }
+
+        public async Task<List<PagoPrestamoDto>> ObtenerPagos(int idPrestamo)
+        {
+            var pagos = new List<PagoPrestamoDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT id_pago_prestamo, numero_pago, capital_pagado, interes_pagado,
+                                   monto_total_pagado, fecha_programada, fecha_pago, estado_pago
+                            FROM pagos_prestamo
+                            WHERE id_prestamo = :idPrestamo
+                            ORDER BY numero_pago";
+
+                        command.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = idPrestamo });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                pagos.Add(new PagoPrestamoDto
+                                {
+                                    IdPagoPrestamo = reader.GetInt32(0),
+                                    NumeroPago = reader.GetInt32(1),
+                                    CapitalPagado = reader.GetDecimal(2),
+                                    InteresPagado = reader.GetDecimal(3),
+                                    MontoTotalPagado = reader.GetDecimal(4),
+                                    FechaProgramada = reader.GetDateTime(5),
+                                    FechaPago = reader.IsDBNull(6) ? null : reader.GetDateTime(6),
+                                    EstadoPago = reader.GetString(7)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo pagos de préstamo {idPrestamo}: {ex.Message}");
+            }
+
+            return pagos;
+        }
+
+        public async Task<bool> Cancelar(int id)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE prestamos
+                            SET estado = 'CANCELADO'
+                            WHERE id_prestamo = :idPrestamo AND estado = 'VIGENTE'";
+
+                        command.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = id });
+
+                        var result = await command.ExecuteNonQueryAsync();
+
+                        if (result > 0)
+                        {
+                            // Cancelar pagos pendientes
+                            using (var cmdPagos = (OracleCommand)connection.CreateCommand())
+                            {
+                                cmdPagos.CommandText = @"
+                                    UPDATE pagos_prestamo
+                                    SET estado_pago = 'CANCELADO'
+                                    WHERE id_prestamo = :idPrestamo AND estado_pago = 'PENDIENTE'";
+
+                                cmdPagos.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = id });
+                                await cmdPagos.ExecuteNonQueryAsync();
+                            }
+
+                            _logger.LogInformation($"Préstamo {id} cancelado");
+                            return true;
+                        }
+
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error cancelando préstamo {id}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ActualizarEstados()
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // Actualizar préstamos vencidos
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE prestamos
+                            SET estado = 'VENCIDO'
+                            WHERE estado = 'VIGENTE'
+                            AND fecha_vencimiento < SYSDATE";
+
+                        var result = await command.ExecuteNonQueryAsync();
+                        _logger.LogInformation($"{result} préstamos actualizados a VENCIDO");
+                    }
+
+                    // Actualizar pagos vencidos
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            UPDATE pagos_prestamo
+                            SET estado_pago = 'VENCIDO'
+                            WHERE estado_pago = 'PENDIENTE'
+                            AND fecha_programada < SYSDATE";
+
+                        var result = await command.ExecuteNonQueryAsync();
+                        _logger.LogInformation($"{result} pagos de préstamo actualizados a VENCIDO");
+                    }
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error actualizando estados de préstamos: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     public class SaldoService : ISaldoService
@@ -656,9 +1570,292 @@ namespace BACKEND_CREDITOS.Services
             _logger = logger;
         }
 
-        public async Task<SaldoDto?> ObtenerSaldoActual(int idMoneda) => null;
-        public async Task<List<SaldoDto>> ObtenerSaldoConsolidado() => new();
-        public async Task<List<SaldoDto>> ObtenerHistoricoMoneda(int idMoneda, int dias = 30) => new();
-        public async Task<bool> ActualizarSaldos() => false;
+        public async Task<SaldoDto?> ObtenerSaldoActual(int idMoneda)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT s.id_saldo, s.id_moneda, m.codigo_moneda, m.nombre_moneda, m.simbolo,
+                                   s.fecha, s.capital_vigente_inversionistas, s.capital_colocado_sistema_financiero,
+                                   s.capital_disponible, s.capital_total
+                            FROM saldo_diario_fondos s
+                            JOIN monedas m ON s.id_moneda = m.id_moneda
+                            WHERE s.id_moneda = :idMoneda
+                            AND s.fecha = (SELECT MAX(fecha) FROM saldo_diario_fondos WHERE id_moneda = :idMoneda)";
+
+                        command.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                return new SaldoDto
+                                {
+                                    IdSaldo = reader.GetInt32(0),
+                                    IdMoneda = reader.GetInt32(1),
+                                    CodigoMoneda = reader.GetString(2),
+                                    NombreMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    Fecha = reader.GetDateTime(5),
+                                    CapitalVigenteInversionistas = reader.GetDecimal(6),
+                                    CapitalColocadoSistemaFinanciero = reader.GetDecimal(7),
+                                    CapitalDisponible = reader.GetDecimal(8),
+                                    CapitalTotal = reader.GetDecimal(9)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo saldo actual para moneda {idMoneda}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public async Task<List<SaldoDto>> ObtenerSaldoConsolidado()
+        {
+            var saldos = new List<SaldoDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT s.id_saldo, s.id_moneda, m.codigo_moneda, m.nombre_moneda, m.simbolo,
+                                   s.fecha, s.capital_vigente_inversionistas, s.capital_colocado_sistema_financiero,
+                                   s.capital_disponible, s.capital_total
+                            FROM saldo_diario_fondos s
+                            JOIN monedas m ON s.id_moneda = m.id_moneda
+                            WHERE s.fecha = (SELECT MAX(fecha) FROM saldo_diario_fondos)
+                            ORDER BY m.codigo_moneda";
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                saldos.Add(new SaldoDto
+                                {
+                                    IdSaldo = reader.GetInt32(0),
+                                    IdMoneda = reader.GetInt32(1),
+                                    CodigoMoneda = reader.GetString(2),
+                                    NombreMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    Fecha = reader.GetDateTime(5),
+                                    CapitalVigenteInversionistas = reader.GetDecimal(6),
+                                    CapitalColocadoSistemaFinanciero = reader.GetDecimal(7),
+                                    CapitalDisponible = reader.GetDecimal(8),
+                                    CapitalTotal = reader.GetDecimal(9)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo saldo consolidado: {ex.Message}");
+            }
+
+            return saldos;
+        }
+
+        public async Task<List<SaldoDto>> ObtenerHistoricoMoneda(int idMoneda, int dias = 30)
+        {
+            var saldos = new List<SaldoDto>();
+
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT s.id_saldo, s.id_moneda, m.codigo_moneda, m.nombre_moneda, m.simbolo,
+                                   s.fecha, s.capital_vigente_inversionistas, s.capital_colocado_sistema_financiero,
+                                   s.capital_disponible, s.capital_total
+                            FROM saldo_diario_fondos s
+                            JOIN monedas m ON s.id_moneda = m.id_moneda
+                            WHERE s.id_moneda = :idMoneda
+                            AND s.fecha >= TRUNC(SYSDATE) - :dias
+                            ORDER BY s.fecha DESC";
+
+                        command.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+                        command.Parameters.Add(new OracleParameter("dias", OracleDbType.Int32) { Value = dias });
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                saldos.Add(new SaldoDto
+                                {
+                                    IdSaldo = reader.GetInt32(0),
+                                    IdMoneda = reader.GetInt32(1),
+                                    CodigoMoneda = reader.GetString(2),
+                                    NombreMoneda = reader.GetString(3),
+                                    Simbolo = reader.GetString(4),
+                                    Fecha = reader.GetDateTime(5),
+                                    CapitalVigenteInversionistas = reader.GetDecimal(6),
+                                    CapitalColocadoSistemaFinanciero = reader.GetDecimal(7),
+                                    CapitalDisponible = reader.GetDecimal(8),
+                                    CapitalTotal = reader.GetDecimal(9)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error obteniendo histórico de saldos para moneda {idMoneda}: {ex.Message}");
+            }
+
+            return saldos;
+        }
+
+        public async Task<bool> ActualizarSaldos()
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // Obtener todas las monedas activas
+                    var monedas = new List<int>();
+                    using (var cmdMonedas = (OracleCommand)connection.CreateCommand())
+                    {
+                        cmdMonedas.CommandText = "SELECT id_moneda FROM monedas WHERE estado = 'ACTIVO'";
+                        using (var reader = await cmdMonedas.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                monedas.Add(reader.GetInt32(0));
+                            }
+                        }
+                    }
+
+                    // Calcular y guardar saldo para cada moneda
+                    foreach (var idMoneda in monedas)
+                    {
+                        // Calcular capital vigente de inversionistas
+                        decimal capitalVigenteInversionistas = 0;
+                        using (var cmd = (OracleCommand)connection.CreateCommand())
+                        {
+                            cmd.CommandText = @"
+                                SELECT NVL(SUM(capital_inicial), 0)
+                                FROM inversiones
+                                WHERE id_moneda = :idMoneda AND estado = 'VIGENTE'";
+                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+                            var result = await cmd.ExecuteScalarAsync();
+                            capitalVigenteInversionistas = result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                        }
+
+                        // Calcular capital colocado en sistema financiero (préstamos)
+                        decimal capitalColocadoSistemaFinanciero = 0;
+                        using (var cmd = (OracleCommand)connection.CreateCommand())
+                        {
+                            cmd.CommandText = @"
+                                SELECT NVL(SUM(capital_prestado), 0)
+                                FROM prestamos
+                                WHERE id_moneda = :idMoneda AND estado = 'VIGENTE'";
+                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+                            var result = await cmd.ExecuteScalarAsync();
+                            capitalColocadoSistemaFinanciero = result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                        }
+
+                        // Capital disponible = Capital vigente inversionistas - Capital colocado
+                        decimal capitalDisponible = capitalVigenteInversionistas - capitalColocadoSistemaFinanciero;
+
+                        // Capital total = Capital vigente inversionistas
+                        decimal capitalTotal = capitalVigenteInversionistas;
+
+                        // Verificar si ya existe un registro para hoy
+                        bool existeHoy = false;
+                        using (var cmd = (OracleCommand)connection.CreateCommand())
+                        {
+                            cmd.CommandText = @"
+                                SELECT COUNT(*)
+                                FROM saldo_diario_fondos
+                                WHERE id_moneda = :idMoneda AND TRUNC(fecha) = TRUNC(SYSDATE)";
+                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+                            var count = (decimal)await cmd.ExecuteScalarAsync()!;
+                            existeHoy = count > 0;
+                        }
+
+                        if (existeHoy)
+                        {
+                            // Actualizar registro existente
+                            using (var cmd = (OracleCommand)connection.CreateCommand())
+                            {
+                                cmd.CommandText = @"
+                                    UPDATE saldo_diario_fondos
+                                    SET capital_vigente_inversionistas = :capitalVigente,
+                                        capital_colocado_sistema_financiero = :capitalColocado,
+                                        capital_disponible = :capitalDisponible,
+                                        capital_total = :capitalTotal
+                                    WHERE id_moneda = :idMoneda AND TRUNC(fecha) = TRUNC(SYSDATE)";
+
+                                cmd.Parameters.Add(new OracleParameter("capitalVigente", OracleDbType.Decimal) { Value = capitalVigenteInversionistas });
+                                cmd.Parameters.Add(new OracleParameter("capitalColocado", OracleDbType.Decimal) { Value = capitalColocadoSistemaFinanciero });
+                                cmd.Parameters.Add(new OracleParameter("capitalDisponible", OracleDbType.Decimal) { Value = capitalDisponible });
+                                cmd.Parameters.Add(new OracleParameter("capitalTotal", OracleDbType.Decimal) { Value = capitalTotal });
+                                cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+                        }
+                        else
+                        {
+                            // Insertar nuevo registro
+                            using (var cmd = (OracleCommand)connection.CreateCommand())
+                            {
+                                cmd.CommandText = @"
+                                    INSERT INTO saldo_diario_fondos (
+                                        id_saldo, id_moneda, fecha,
+                                        capital_vigente_inversionistas, capital_colocado_sistema_financiero,
+                                        capital_disponible, capital_total, fecha_creacion
+                                    ) VALUES (
+                                        seq_saldo_diario.NEXTVAL, :idMoneda, TRUNC(SYSDATE),
+                                        :capitalVigente, :capitalColocado,
+                                        :capitalDisponible, :capitalTotal, SYSDATE
+                                    )";
+
+                                cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
+                                cmd.Parameters.Add(new OracleParameter("capitalVigente", OracleDbType.Decimal) { Value = capitalVigenteInversionistas });
+                                cmd.Parameters.Add(new OracleParameter("capitalColocado", OracleDbType.Decimal) { Value = capitalColocadoSistemaFinanciero });
+                                cmd.Parameters.Add(new OracleParameter("capitalDisponible", OracleDbType.Decimal) { Value = capitalDisponible });
+                                cmd.Parameters.Add(new OracleParameter("capitalTotal", OracleDbType.Decimal) { Value = capitalTotal });
+
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+                        }
+
+                        _logger.LogInformation($"Saldo actualizado para moneda {idMoneda}");
+                    }
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error actualizando saldos: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
