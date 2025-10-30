@@ -276,6 +276,46 @@ COMMENT ON TABLE auditoria_operaciones IS 'Tabla que registra todas las operacio
 COMMENT ON COLUMN auditoria_operaciones.accion IS 'Tipo de operación: INSERT (inserción), UPDATE (actualización), DELETE (eliminación)';
 
 -- ============================================================================
+-- 4.9 TABLA DE ROLES - Gestión de roles de usuarios
+-- ============================================================================
+
+CREATE TABLE roles (
+    id_rol NUMBER(10) PRIMARY KEY,
+    nombre_rol VARCHAR2(50) NOT NULL UNIQUE,
+    descripcion VARCHAR2(200),
+    estado VARCHAR2(20) DEFAULT 'ACTIVO' CHECK (estado IN ('ACTIVO', 'INACTIVO')),
+    fecha_creacion DATE DEFAULT SYSDATE
+);
+
+CREATE SEQUENCE seq_roles START WITH 1 INCREMENT BY 1;
+
+COMMENT ON TABLE roles IS 'Tabla que almacena los roles del sistema para control de acceso';
+COMMENT ON COLUMN roles.id_rol IS 'Identificador único del rol';
+COMMENT ON COLUMN roles.nombre_rol IS 'Nombre del rol (ej: ADMIN, USUARIO)';
+COMMENT ON COLUMN roles.descripcion IS 'Descripción del rol y sus permisos';
+
+-- ============================================================================
+-- 4.10 TABLA DE USUARIOS_ROLES - Relación usuarios con roles
+-- ============================================================================
+
+CREATE TABLE usuarios_roles (
+    id_usuario_rol NUMBER(15) PRIMARY KEY,
+    id_usuario NUMBER(10) NOT NULL,
+    id_rol NUMBER(10) NOT NULL,
+    fecha_asignacion DATE DEFAULT SYSDATE,
+    asignado_por NUMBER(10),
+    CONSTRAINT fk_ur_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    CONSTRAINT fk_ur_rol FOREIGN KEY (id_rol) REFERENCES roles(id_rol) ON DELETE CASCADE,
+    CONSTRAINT fk_ur_asignado_por FOREIGN KEY (asignado_por) REFERENCES usuarios(id_usuario),
+    CONSTRAINT uk_usuario_rol UNIQUE (id_usuario, id_rol)
+);
+
+CREATE SEQUENCE seq_usuarios_roles START WITH 1 INCREMENT BY 1;
+
+COMMENT ON TABLE usuarios_roles IS 'Tabla que relaciona usuarios con sus roles asignados';
+COMMENT ON COLUMN usuarios_roles.asignado_por IS 'Usuario que asignó el rol (para auditoría)';
+
+-- ============================================================================
 -- PASO 5: CREAR ÍNDICES PARA OPTIMIZACIÓN
 -- ============================================================================
 
@@ -306,6 +346,12 @@ CREATE INDEX idx_saldo_fecha ON saldo_diario_fondos(fecha);
 CREATE INDEX idx_auditoria_usuario ON auditoria_operaciones(id_usuario);
 CREATE INDEX idx_auditoria_fecha ON auditoria_operaciones(fecha_operacion);
 
+CREATE INDEX idx_roles_estado ON roles(estado);
+CREATE INDEX idx_roles_nombre ON roles(nombre_rol);
+
+CREATE INDEX idx_usuarios_roles_usuario ON usuarios_roles(id_usuario);
+CREATE INDEX idx_usuarios_roles_rol ON usuarios_roles(id_rol);
+
 -- ============================================================================
 -- PASO 6: INSERTAR DATOS INICIALES
 -- ============================================================================
@@ -318,6 +364,17 @@ VALUES (seq_usuarios.NEXTVAL, 'USR_PRG2_A', 'umg123', 'Usuario Administrador', '
 INSERT INTO monedas VALUES (1, 'GTQ', 'Quetzal Guatemalteco', 'Q', 'ACTIVO');
 INSERT INTO monedas VALUES (2, 'USD', 'Dólar Estadounidense', '$', 'ACTIVO');
 INSERT INTO monedas VALUES (3, 'EUR', 'Euro', '€', 'ACTIVO');
+
+-- Insertar roles
+INSERT INTO roles (id_rol, nombre_rol, descripcion, estado)
+VALUES (seq_roles.NEXTVAL, 'ADMIN', 'Administrador del sistema con acceso completo', 'ACTIVO');
+
+INSERT INTO roles (id_rol, nombre_rol, descripcion, estado)
+VALUES (seq_roles.NEXTVAL, 'USUARIO', 'Usuario estándar con permisos básicos', 'ACTIVO');
+
+-- Asignar rol de ADMIN al usuario inicial
+INSERT INTO usuarios_roles (id_usuario_rol, id_usuario, id_rol, fecha_asignacion)
+VALUES (seq_usuarios_roles.NEXTVAL, 1, 1, SYSDATE);
 
 COMMIT;
 
@@ -711,10 +768,10 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('║  Usuario de base de datos: banco_usr                           ║');
     DBMS_OUTPUT.PUT_LINE('║  Contraseña: BancoApp2025!                                     ║');
     DBMS_OUTPUT.PUT_LINE('║                                                                ║');
-    DBMS_OUTPUT.PUT_LINE('║  8 Tablas creadas                                              ║');
+    DBMS_OUTPUT.PUT_LINE('║  10 Tablas creadas                                             ║');
     DBMS_OUTPUT.PUT_LINE('║  5 Procedimientos almacenados                                  ║');
     DBMS_OUTPUT.PUT_LINE('║  3 Vistas creadas                                              ║');
-    DBMS_OUTPUT.PUT_LINE('║  14 Índices creados                                            ║');
+    DBMS_OUTPUT.PUT_LINE('║  18 Índices creados                                            ║');
     DBMS_OUTPUT.PUT_LINE('║                                                                ║');
     DBMS_OUTPUT.PUT_LINE('║  Usuario inicial: USR_PRG2_A / umg123                          ║');
     DBMS_OUTPUT.PUT_LINE('║  Monedas: GTQ, USD, EUR                                        ║');

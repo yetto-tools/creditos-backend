@@ -114,6 +114,7 @@ try
     builder.Services.AddScoped<IMonedaService, MonedaService>();
     builder.Services.AddScoped<ISaldoService, SaldoService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<IRolService, RolService>();
 
     // AutoMapper
     builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
