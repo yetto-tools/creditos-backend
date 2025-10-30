@@ -637,15 +637,11 @@ namespace BACKEND_CREDITOS.Services
                         }
                     }
 
-                    // Calcular fechas y montos
+                    // Calcular fechas
                     var fechaInicio = DateTime.Now;
                     var fechaVencimiento = fechaInicio.AddDays(request.PlazoDias);
 
-                    // Interés simple: Interés = Capital * Tasa * Tiempo
-                    var interesTotal = request.CapitalInicial * (request.TasaInteres / 100) * (request.PlazoDias / 365m);
-                    var montoTotal = request.CapitalInicial + interesTotal;
-
-                    // Insertar inversión
+                    // Insertar inversión (sin calcular intereses, el SP lo hará)
                     int idInversion = 0;
                     using (var cmdInversion = (OracleCommand)connection.CreateCommand())
                     {
@@ -653,13 +649,11 @@ namespace BACKEND_CREDITOS.Services
                             INSERT INTO inversiones (
                                 id_inversion, id_usuario, id_moneda, capital_inicial, tasa_interes,
                                 plazo_dias, modalidad_pago, fecha_inicio, fecha_vencimiento,
-                                interes_total_proyectado, monto_total_a_recibir, estado,
-                                fecha_creacion, observaciones
+                                estado, fecha_creacion, observaciones
                             ) VALUES (
                                 seq_inversiones.NEXTVAL, :idUsuario, :idMoneda, :capitalInicial, :tasaInteres,
                                 :plazoDias, :modalidadPago, :fechaInicio, :fechaVencimiento,
-                                :interesTotal, :montoTotal, 'VIGENTE',
-                                SYSDATE, :observaciones
+                                'VIGENTE', SYSDATE, :observaciones
                             ) RETURNING id_inversion INTO :idInversion";
 
                         cmdInversion.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario });
@@ -670,8 +664,6 @@ namespace BACKEND_CREDITOS.Services
                         cmdInversion.Parameters.Add(new OracleParameter("modalidadPago", OracleDbType.Varchar2) { Value = request.ModalidadPago });
                         cmdInversion.Parameters.Add(new OracleParameter("fechaInicio", OracleDbType.Date) { Value = fechaInicio });
                         cmdInversion.Parameters.Add(new OracleParameter("fechaVencimiento", OracleDbType.Date) { Value = fechaVencimiento });
-                        cmdInversion.Parameters.Add(new OracleParameter("interesTotal", OracleDbType.Decimal) { Value = interesTotal });
-                        cmdInversion.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
                         cmdInversion.Parameters.Add(new OracleParameter("observaciones", OracleDbType.Varchar2) { Value = request.Observaciones ?? "" });
 
                         var outParam = new OracleParameter("idInversion", OracleDbType.Int32) { Direction = ParameterDirection.Output };
@@ -681,33 +673,28 @@ namespace BACKEND_CREDITOS.Services
                         idInversion = ((OracleDecimal)outParam.Value).ToInt32();
                     }
 
-                    // Crear pagos programados
+                    // Llamar al stored procedure correspondiente según modalidad de pago
                     if (idInversion > 0)
                     {
-                        if (request.ModalidadPago == "MENSUAL")
+                        using (var cmdSP = (OracleCommand)connection.CreateCommand())
                         {
-                            // Pagos mensuales (solo intereses, capital al final)
-                            int numeroPagos = (int)Math.Ceiling(request.PlazoDias / 30.0);
-                            decimal interesMensual = interesTotal / numeroPagos;
-
-                            for (int i = 1; i <= numeroPagos; i++)
+                            if (request.ModalidadPago == "MENSUAL")
                             {
-                                var fechaPago = fechaInicio.AddMonths(i);
-                                decimal capitalPago = (i == numeroPagos) ? request.CapitalInicial : 0;
-                                decimal interesPago = interesMensual;
-                                decimal montoTotalPago = capitalPago + interesPago;
-
-                                await InsertarPagoInversion(connection, idInversion, i, capitalPago, interesPago, montoTotalPago, fechaPago);
+                                cmdSP.CommandText = "sp_calcular_pagos_inversion_mensual";
                             }
-                        }
-                        else // FINAL
-                        {
-                            // Un solo pago al final con capital + intereses
-                            await InsertarPagoInversion(connection, idInversion, 1, request.CapitalInicial, interesTotal, montoTotal, fechaVencimiento);
+                            else // FINAL
+                            {
+                                cmdSP.CommandText = "sp_calcular_pagos_inversion_final";
+                            }
+
+                            cmdSP.CommandType = CommandType.StoredProcedure;
+                            cmdSP.Parameters.Add(new OracleParameter("p_id_inversion", OracleDbType.Int32) { Value = idInversion });
+
+                            await cmdSP.ExecuteNonQueryAsync();
                         }
                     }
 
-                    _logger.LogInformation($"Inversión {idInversion} creada exitosamente");
+                    _logger.LogInformation($"Inversión {idInversion} creada exitosamente usando stored procedure");
                     return idInversion;
                 }
             }
@@ -715,33 +702,6 @@ namespace BACKEND_CREDITOS.Services
             {
                 _logger.LogError($"Error creando inversión: {ex.Message}");
                 return 0;
-            }
-        }
-
-        private async Task InsertarPagoInversion(OracleConnection connection, int idInversion, int numeroPago,
-            decimal capital, decimal interes, decimal montoTotal, DateTime fechaProgramada)
-        {
-            using (var cmd = (OracleCommand)connection.CreateCommand())
-            {
-                cmd.CommandText = @"
-                    INSERT INTO pagos_inversiones (
-                        id_pago_inversion, id_inversion, numero_pago, capital_pagado,
-                        interes_pagado, monto_total_pagado, fecha_programada,
-                        estado_pago, fecha_creacion
-                    ) VALUES (
-                        seq_pagos_inversiones.NEXTVAL, :idInversion, :numeroPago, :capital,
-                        :interes, :montoTotal, :fechaProgramada,
-                        'PENDIENTE', SYSDATE
-                    )";
-
-                cmd.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = idInversion });
-                cmd.Parameters.Add(new OracleParameter("numeroPago", OracleDbType.Int32) { Value = numeroPago });
-                cmd.Parameters.Add(new OracleParameter("capital", OracleDbType.Decimal) { Value = capital });
-                cmd.Parameters.Add(new OracleParameter("interes", OracleDbType.Decimal) { Value = interes });
-                cmd.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
-                cmd.Parameters.Add(new OracleParameter("fechaProgramada", OracleDbType.Date) { Value = fechaProgramada });
-
-                await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -1113,15 +1073,11 @@ namespace BACKEND_CREDITOS.Services
                         }
                     }
 
-                    // Calcular fechas y montos
+                    // Calcular fechas
                     var fechaInicio = DateTime.Now;
                     var fechaVencimiento = fechaInicio.AddDays(request.PlazoDias);
 
-                    // Interés simple: Interés = Capital * Tasa * Tiempo
-                    var interesTotal = request.CapitalPrestado * (request.TasaInteres / 100) * (request.PlazoDias / 365m);
-                    var montoTotal = request.CapitalPrestado + interesTotal;
-
-                    // Insertar préstamo
+                    // Insertar préstamo (sin calcular intereses, el SP lo hará)
                     int idPrestamo = 0;
                     using (var cmdPrestamo = (OracleCommand)connection.CreateCommand())
                     {
@@ -1129,13 +1085,11 @@ namespace BACKEND_CREDITOS.Services
                             INSERT INTO prestamos (
                                 id_prestamo, id_usuario, id_moneda, entidad_financiera, capital_prestado,
                                 tasa_interes, plazo_dias, modalidad_pago, fecha_inicio, fecha_vencimiento,
-                                interes_total_proyectado, monto_total_a_recibir, estado,
-                                fecha_creacion, observaciones
+                                estado, fecha_creacion, observaciones
                             ) VALUES (
                                 seq_prestamos.NEXTVAL, :idUsuario, :idMoneda, :entidadFinanciera, :capitalPrestado,
                                 :tasaInteres, :plazoDias, :modalidadPago, :fechaInicio, :fechaVencimiento,
-                                :interesTotal, :montoTotal, 'VIGENTE',
-                                SYSDATE, :observaciones
+                                'VIGENTE', SYSDATE, :observaciones
                             ) RETURNING id_prestamo INTO :idPrestamo";
 
                         cmdPrestamo.Parameters.Add(new OracleParameter("idUsuario", OracleDbType.Int32) { Value = idUsuario });
@@ -1147,8 +1101,6 @@ namespace BACKEND_CREDITOS.Services
                         cmdPrestamo.Parameters.Add(new OracleParameter("modalidadPago", OracleDbType.Varchar2) { Value = request.ModalidadPago });
                         cmdPrestamo.Parameters.Add(new OracleParameter("fechaInicio", OracleDbType.Date) { Value = fechaInicio });
                         cmdPrestamo.Parameters.Add(new OracleParameter("fechaVencimiento", OracleDbType.Date) { Value = fechaVencimiento });
-                        cmdPrestamo.Parameters.Add(new OracleParameter("interesTotal", OracleDbType.Decimal) { Value = interesTotal });
-                        cmdPrestamo.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
                         cmdPrestamo.Parameters.Add(new OracleParameter("observaciones", OracleDbType.Varchar2) { Value = request.Observaciones ?? "" });
 
                         var outParam = new OracleParameter("idPrestamo", OracleDbType.Int32) { Direction = ParameterDirection.Output };
@@ -1158,31 +1110,28 @@ namespace BACKEND_CREDITOS.Services
                         idPrestamo = ((OracleDecimal)outParam.Value).ToInt32();
                     }
 
-                    // Crear pagos programados
+                    // Llamar al stored procedure correspondiente según modalidad de pago
                     if (idPrestamo > 0)
                     {
-                        if (request.ModalidadPago == "MENSUAL")
+                        using (var cmdSP = (OracleCommand)connection.CreateCommand())
                         {
-                            // Pagos mensuales con amortización
-                            int numeroPagos = (int)Math.Ceiling(request.PlazoDias / 30.0);
-                            decimal pagoMensual = montoTotal / numeroPagos;
-                            decimal capitalPorPago = request.CapitalPrestado / numeroPagos;
-                            decimal interesPorPago = interesTotal / numeroPagos;
-
-                            for (int i = 1; i <= numeroPagos; i++)
+                            if (request.ModalidadPago == "MENSUAL")
                             {
-                                var fechaPago = fechaInicio.AddMonths(i);
-                                await InsertarPagoPrestamo(connection, idPrestamo, i, capitalPorPago, interesPorPago, pagoMensual, fechaPago);
+                                cmdSP.CommandText = "sp_calcular_pagos_prestamo_mensual";
                             }
-                        }
-                        else // FINAL
-                        {
-                            // Un solo pago al final con capital + intereses
-                            await InsertarPagoPrestamo(connection, idPrestamo, 1, request.CapitalPrestado, interesTotal, montoTotal, fechaVencimiento);
+                            else // FINAL
+                            {
+                                cmdSP.CommandText = "sp_calcular_pagos_prestamo_final";
+                            }
+
+                            cmdSP.CommandType = CommandType.StoredProcedure;
+                            cmdSP.Parameters.Add(new OracleParameter("p_id_prestamo", OracleDbType.Int32) { Value = idPrestamo });
+
+                            await cmdSP.ExecuteNonQueryAsync();
                         }
                     }
 
-                    _logger.LogInformation($"Préstamo {idPrestamo} creado exitosamente");
+                    _logger.LogInformation($"Préstamo {idPrestamo} creado exitosamente usando stored procedure");
                     return idPrestamo;
                 }
             }
@@ -1190,33 +1139,6 @@ namespace BACKEND_CREDITOS.Services
             {
                 _logger.LogError($"Error creando préstamo: {ex.Message}");
                 return 0;
-            }
-        }
-
-        private async Task InsertarPagoPrestamo(OracleConnection connection, int idPrestamo, int numeroPago,
-            decimal capital, decimal interes, decimal montoTotal, DateTime fechaProgramada)
-        {
-            using (var cmd = (OracleCommand)connection.CreateCommand())
-            {
-                cmd.CommandText = @"
-                    INSERT INTO pagos_prestamos (
-                        id_pago_prestamo, id_prestamo, numero_pago, capital_pagado,
-                        interes_pagado, monto_total_pagado, fecha_programada,
-                        estado_pago, fecha_creacion
-                    ) VALUES (
-                        seq_pagos_prestamos.NEXTVAL, :idPrestamo, :numeroPago, :capital,
-                        :interes, :montoTotal, :fechaProgramada,
-                        'PENDIENTE', SYSDATE
-                    )";
-
-                cmd.Parameters.Add(new OracleParameter("idPrestamo", OracleDbType.Int32) { Value = idPrestamo });
-                cmd.Parameters.Add(new OracleParameter("numeroPago", OracleDbType.Int32) { Value = numeroPago });
-                cmd.Parameters.Add(new OracleParameter("capital", OracleDbType.Decimal) { Value = capital });
-                cmd.Parameters.Add(new OracleParameter("interes", OracleDbType.Decimal) { Value = interes });
-                cmd.Parameters.Add(new OracleParameter("montoTotal", OracleDbType.Decimal) { Value = montoTotal });
-                cmd.Parameters.Add(new OracleParameter("fechaProgramada", OracleDbType.Date) { Value = fechaProgramada });
-
-                await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -1749,103 +1671,20 @@ namespace BACKEND_CREDITOS.Services
                         }
                     }
 
-                    // Calcular y guardar saldo para cada moneda
+                    // Llamar al stored procedure para actualizar saldo de cada moneda
                     foreach (var idMoneda in monedas)
                     {
-                        // Calcular capital vigente de inversionistas
-                        decimal capitalVigenteInversionistas = 0;
-                        using (var cmd = (OracleCommand)connection.CreateCommand())
+                        using (var cmdSP = (OracleCommand)connection.CreateCommand())
                         {
-                            cmd.CommandText = @"
-                                SELECT NVL(SUM(capital_inicial), 0)
-                                FROM inversiones
-                                WHERE id_moneda = :idMoneda AND estado = 'VIGENTE'";
-                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
-                            var result = await cmd.ExecuteScalarAsync();
-                            capitalVigenteInversionistas = result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                            cmdSP.CommandText = "sp_actualizar_saldo_diario";
+                            cmdSP.CommandType = CommandType.StoredProcedure;
+                            cmdSP.Parameters.Add(new OracleParameter("p_id_moneda", OracleDbType.Int32) { Value = idMoneda });
+                            cmdSP.Parameters.Add(new OracleParameter("p_fecha", OracleDbType.Date) { Value = DateTime.Now, Direction = ParameterDirection.Input });
+
+                            await cmdSP.ExecuteNonQueryAsync();
                         }
 
-                        // Calcular capital colocado en sistema financiero (préstamos)
-                        decimal capitalColocadoSistemaFinanciero = 0;
-                        using (var cmd = (OracleCommand)connection.CreateCommand())
-                        {
-                            cmd.CommandText = @"
-                                SELECT NVL(SUM(capital_prestado), 0)
-                                FROM prestamos
-                                WHERE id_moneda = :idMoneda AND estado = 'VIGENTE'";
-                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
-                            var result = await cmd.ExecuteScalarAsync();
-                            capitalColocadoSistemaFinanciero = result != DBNull.Value ? Convert.ToDecimal(result) : 0;
-                        }
-
-                        // Capital disponible = Capital vigente inversionistas - Capital colocado
-                        decimal capitalDisponible = capitalVigenteInversionistas - capitalColocadoSistemaFinanciero;
-
-                        // Capital total = Capital vigente inversionistas
-                        decimal capitalTotal = capitalVigenteInversionistas;
-
-                        // Verificar si ya existe un registro para hoy
-                        bool existeHoy = false;
-                        using (var cmd = (OracleCommand)connection.CreateCommand())
-                        {
-                            cmd.CommandText = @"
-                                SELECT COUNT(*)
-                                FROM saldo_diario_fondos
-                                WHERE id_moneda = :idMoneda AND TRUNC(fecha) = TRUNC(SYSDATE)";
-                            cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
-                            var count = (decimal)await cmd.ExecuteScalarAsync()!;
-                            existeHoy = count > 0;
-                        }
-
-                        if (existeHoy)
-                        {
-                            // Actualizar registro existente
-                            using (var cmd = (OracleCommand)connection.CreateCommand())
-                            {
-                                cmd.CommandText = @"
-                                    UPDATE saldo_diario_fondos
-                                    SET capital_vigente_inversionistas = :capitalVigente,
-                                        capital_colocado_sistema_financiero = :capitalColocado,
-                                        capital_disponible = :capitalDisponible,
-                                        capital_total = :capitalTotal
-                                    WHERE id_moneda = :idMoneda AND TRUNC(fecha) = TRUNC(SYSDATE)";
-
-                                cmd.Parameters.Add(new OracleParameter("capitalVigente", OracleDbType.Decimal) { Value = capitalVigenteInversionistas });
-                                cmd.Parameters.Add(new OracleParameter("capitalColocado", OracleDbType.Decimal) { Value = capitalColocadoSistemaFinanciero });
-                                cmd.Parameters.Add(new OracleParameter("capitalDisponible", OracleDbType.Decimal) { Value = capitalDisponible });
-                                cmd.Parameters.Add(new OracleParameter("capitalTotal", OracleDbType.Decimal) { Value = capitalTotal });
-                                cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
-
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-                        }
-                        else
-                        {
-                            // Insertar nuevo registro
-                            using (var cmd = (OracleCommand)connection.CreateCommand())
-                            {
-                                cmd.CommandText = @"
-                                    INSERT INTO saldo_diario_fondos (
-                                        id_saldo, id_moneda, fecha,
-                                        capital_vigente_inversionistas, capital_colocado_sistema_financiero,
-                                        capital_disponible, capital_total, fecha_creacion
-                                    ) VALUES (
-                                        seq_saldo_diario_fondos.NEXTVAL, :idMoneda, TRUNC(SYSDATE),
-                                        :capitalVigente, :capitalColocado,
-                                        :capitalDisponible, :capitalTotal, SYSDATE
-                                    )";
-
-                                cmd.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = idMoneda });
-                                cmd.Parameters.Add(new OracleParameter("capitalVigente", OracleDbType.Decimal) { Value = capitalVigenteInversionistas });
-                                cmd.Parameters.Add(new OracleParameter("capitalColocado", OracleDbType.Decimal) { Value = capitalColocadoSistemaFinanciero });
-                                cmd.Parameters.Add(new OracleParameter("capitalDisponible", OracleDbType.Decimal) { Value = capitalDisponible });
-                                cmd.Parameters.Add(new OracleParameter("capitalTotal", OracleDbType.Decimal) { Value = capitalTotal });
-
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-                        }
-
-                        _logger.LogInformation($"Saldo actualizado para moneda {idMoneda}");
+                        _logger.LogInformation($"Saldo actualizado para moneda {idMoneda} usando stored procedure");
                     }
 
                     return true;
