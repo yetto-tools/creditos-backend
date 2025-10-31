@@ -1,0 +1,446 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" version="24.0.0">
+  <diagram name="Diagrama de Clases - Backend Créditos" id="class-diagram">
+    <mxGraphModel dx="2074" dy="1214" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ENTIDADES DE DOMINIO -->
+        <mxCell id="entity-title" value="ENTIDADES DE DOMINIO" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="300" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Usuario -->
+        <mxCell id="Usuario" value="Usuario" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="280" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="Usuario-attrs" value="+ IdUsuario: int&#xa;+ Nombre: string&#xa;+ Contrasena: string&#xa;+ NombreCompleto: string&#xa;+ CorreoElectronico: string&#xa;+ Estado: string&#xa;+ FechaCreacion: DateTime&#xa;+ FechaUltimoAcceso: DateTime?&#xa;+ FechaCambioContrasena: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Usuario">
+          <mxGeometry y="26" width="280" height="144" as="geometry"/>
+        </mxCell>
+        <mxCell id="Usuario-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="Usuario">
+          <mxGeometry y="170" width="280" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="Usuario-nav" value="+ UsuariosRoles: List&lt;UsuarioRol&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Usuario">
+          <mxGeometry y="178" width="280" height="62" as="geometry"/>
+        </mxCell>
+
+        <!-- Rol -->
+        <mxCell id="Rol" value="Rol" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="260" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="Rol-attrs" value="+ IdRol: int&#xa;+ NombreRol: string&#xa;+ Descripcion: string&#xa;+ Estado: string&#xa;+ FechaCreacion: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Rol">
+          <mxGeometry y="26" width="260" height="84" as="geometry"/>
+        </mxCell>
+        <mxCell id="Rol-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="Rol">
+          <mxGeometry y="110" width="260" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="Rol-nav" value="+ UsuariosRoles: List&lt;UsuarioRol&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Rol">
+          <mxGeometry y="118" width="260" height="62" as="geometry"/>
+        </mxCell>
+
+        <!-- UsuarioRol -->
+        <mxCell id="UsuarioRol" value="UsuarioRol" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="280" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="UsuarioRol-attrs" value="+ IdUsuarioRol: int&#xa;+ IdUsuario: int&#xa;+ IdRol: int&#xa;+ FechaAsignacion: DateTime&#xa;+ AsignadoPor: int?" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UsuarioRol">
+          <mxGeometry y="26" width="280" height="84" as="geometry"/>
+        </mxCell>
+        <mxCell id="UsuarioRol-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="UsuarioRol">
+          <mxGeometry y="110" width="280" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="UsuarioRol-nav" value="+ Usuario: Usuario?&#xa;+ Rol: Rol?&#xa;+ AsignadoPorUsuario: Usuario?" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UsuarioRol">
+          <mxGeometry y="118" width="280" height="82" as="geometry"/>
+        </mxCell>
+
+        <!-- Moneda -->
+        <mxCell id="Moneda" value="Moneda" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="260" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="Moneda-attrs" value="+ IdMoneda: int&#xa;+ CodigoMoneda: string&#xa;+ NombreMoneda: string&#xa;+ Simbolo: string&#xa;+ Estado: string" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Moneda">
+          <mxGeometry y="26" width="260" height="114" as="geometry"/>
+        </mxCell>
+
+        <!-- Inversion -->
+        <mxCell id="Inversion" value="Inversion" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="340" y="360" width="300" height="340" as="geometry"/>
+        </mxCell>
+        <mxCell id="Inversion-attrs" value="+ IdInversion: int&#xa;+ IdUsuario: int&#xa;+ IdMoneda: int&#xa;+ CapitalInicial: decimal&#xa;+ TasaInteres: decimal&#xa;+ PlazoDias: int&#xa;+ ModalidadPago: string&#xa;+ FechaInicio: DateTime&#xa;+ FechaVencimiento: DateTime&#xa;+ InteresTotalProyectado: decimal&#xa;+ MontoTotalARecibir: decimal&#xa;+ Estado: string&#xa;+ FechaCreacion: DateTime&#xa;+ Observaciones: string" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Inversion">
+          <mxGeometry y="26" width="300" height="224" as="geometry"/>
+        </mxCell>
+        <mxCell id="Inversion-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="Inversion">
+          <mxGeometry y="250" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="Inversion-nav" value="+ Usuario: Usuario?&#xa;+ Moneda: Moneda?&#xa;+ Pagos: List&lt;PagoInversion&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Inversion">
+          <mxGeometry y="258" width="300" height="82" as="geometry"/>
+        </mxCell>
+
+        <!-- PagoInversion -->
+        <mxCell id="PagoInversion" value="PagoInversion" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="680" y="360" width="280" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoInversion-attrs" value="+ IdPagoInversion: int&#xa;+ IdInversion: int&#xa;+ NumeroPago: int&#xa;+ CapitalPagado: decimal&#xa;+ InteresPagado: decimal&#xa;+ MontoTotalPagado: decimal&#xa;+ FechaPago: DateTime?&#xa;+ FechaProgramada: DateTime&#xa;+ EstadoPago: string&#xa;+ FechaCreacion: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="PagoInversion">
+          <mxGeometry y="26" width="280" height="164" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoInversion-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="PagoInversion">
+          <mxGeometry y="190" width="280" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoInversion-nav" value="+ Inversion: Inversion?" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="PagoInversion">
+          <mxGeometry y="198" width="280" height="62" as="geometry"/>
+        </mxCell>
+
+        <!-- Prestamo -->
+        <mxCell id="Prestamo" value="Prestamo" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="300" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="Prestamo-attrs" value="+ IdPrestamo: int&#xa;+ IdUsuario: int&#xa;+ IdMoneda: int&#xa;+ EntidadFinanciera: string&#xa;+ CapitalPrestado: decimal&#xa;+ TasaInteres: decimal&#xa;+ PlazoDias: int&#xa;+ ModalidadPago: string&#xa;+ FechaInicio: DateTime&#xa;+ FechaVencimiento: DateTime&#xa;+ InteresTotalProyectado: decimal&#xa;+ MontoTotalARecibir: decimal&#xa;+ Estado: string&#xa;+ FechaCreacion: DateTime&#xa;+ Observaciones: string" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Prestamo">
+          <mxGeometry y="26" width="300" height="244" as="geometry"/>
+        </mxCell>
+        <mxCell id="Prestamo-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="Prestamo">
+          <mxGeometry y="270" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="Prestamo-nav" value="+ Usuario: Usuario?&#xa;+ Moneda: Moneda?&#xa;+ Pagos: List&lt;PagoPrestamo&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="Prestamo">
+          <mxGeometry y="278" width="300" height="82" as="geometry"/>
+        </mxCell>
+
+        <!-- PagoPrestamo -->
+        <mxCell id="PagoPrestamo" value="PagoPrestamo" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="380" y="740" width="280" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoPrestamo-attrs" value="+ IdPagoPrestamo: int&#xa;+ IdPrestamo: int&#xa;+ NumeroPago: int&#xa;+ CapitalPagado: decimal&#xa;+ InteresPagado: decimal&#xa;+ MontoTotalPagado: decimal&#xa;+ FechaPago: DateTime?&#xa;+ FechaProgramada: DateTime&#xa;+ EstadoPago: string&#xa;+ FechaCreacion: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="PagoPrestamo">
+          <mxGeometry y="26" width="280" height="164" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoPrestamo-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="PagoPrestamo">
+          <mxGeometry y="190" width="280" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="PagoPrestamo-nav" value="+ Prestamo: Prestamo?" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="PagoPrestamo">
+          <mxGeometry y="198" width="280" height="62" as="geometry"/>
+        </mxCell>
+
+        <!-- SaldoDiarioFondos -->
+        <mxCell id="SaldoDiarioFondos" value="SaldoDiarioFondos" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="740" width="320" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="SaldoDiarioFondos-attrs" value="+ IdSaldo: int&#xa;+ IdMoneda: int&#xa;+ Fecha: DateTime&#xa;+ CapitalVigenteInversionistas: decimal&#xa;+ CapitalColocadoSistemaFinanciero: decimal&#xa;+ CapitalDisponible: decimal&#xa;+ CapitalTotal: decimal&#xa;+ FechaCreacion: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="SaldoDiarioFondos">
+          <mxGeometry y="26" width="320" height="134" as="geometry"/>
+        </mxCell>
+        <mxCell id="SaldoDiarioFondos-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="SaldoDiarioFondos">
+          <mxGeometry y="160" width="320" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="SaldoDiarioFondos-nav" value="+ Moneda: Moneda?" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="SaldoDiarioFondos">
+          <mxGeometry y="168" width="320" height="52" as="geometry"/>
+        </mxCell>
+
+        <!-- SERVICIOS -->
+        <mxCell id="services-title" value="SERVICIOS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1100" y="40" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- IAuthService -->
+        <mxCell id="IAuthService" value="&lt;&lt;interface&gt;&gt;&#xa;IAuthService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="360" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="IAuthService-methods" value="+ Login(request): Task&lt;UsuarioLoginResponse?&gt;&#xa;+ Registrar(request): Task&lt;bool&gt;&#xa;+ CambiarContrasena(idUsuario, request): Task&lt;bool&gt;&#xa;+ RecuperarContrasena(usuario, nueva): Task&lt;bool&gt;&#xa;+ GenerarToken(usuario): string" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="IAuthService">
+          <mxGeometry y="40" width="360" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- AuthService -->
+        <mxCell id="AuthService" value="AuthService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="250" width="360" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthService-fields" value="- _connectionRepository: IConnectionRepository&#xa;- _configuration: IConfiguration&#xa;- _logger: ILogger&lt;AuthService&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuthService">
+          <mxGeometry y="26" width="360" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthService-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="AuthService">
+          <mxGeometry y="80" width="360" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthService-methods" value="+ Login(request): Task&lt;UsuarioLoginResponse?&gt;&#xa;+ Registrar(request): Task&lt;bool&gt;&#xa;+ CambiarContrasena(idUsuario, request): Task&lt;bool&gt;&#xa;+ RecuperarContrasena(usuario, nueva): Task&lt;bool&gt;&#xa;+ GenerarToken(usuario): string&#xa;- EncriptarContrasena(contrasena): string&#xa;- VerificarContrasena(contrasena, hash): bool" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuthService">
+          <mxGeometry y="88" width="360" height="112" as="geometry"/>
+        </mxCell>
+
+        <!-- IInversionService -->
+        <mxCell id="IInversionService" value="&lt;&lt;interface&gt;&gt;&#xa;IInversionService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="80" width="380" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="IInversionService-methods" value="+ Crear(idUsuario, request): Task&lt;int&gt;&#xa;+ ObtenerPorId(id): Task&lt;InversionDto?&gt;&#xa;+ ObtenerTodas(idUsuario?): Task&lt;List&lt;InversionDto&gt;&gt;&#xa;+ ObtenerActivas(idUsuario?): Task&lt;List&lt;InversionDto&gt;&gt;&#xa;+ ObtenerPagos(idInversion): Task&lt;List&lt;PagoInversionDto&gt;&gt;&#xa;+ Cancelar(id): Task&lt;bool&gt;&#xa;+ Actualizar(idInversion, request): Task&lt;bool&gt;&#xa;+ ActualizarEstados(): Task&lt;bool&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="IInversionService">
+          <mxGeometry y="40" width="380" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- InversionService -->
+        <mxCell id="InversionService" value="InversionService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="290" width="380" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionService-fields" value="- _connectionRepository: IConnectionRepository&#xa;- _logger: ILogger&lt;InversionService&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="InversionService">
+          <mxGeometry y="26" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionService-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="InversionService">
+          <mxGeometry y="70" width="380" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionService-methods" value="+ Crear(idUsuario, request): Task&lt;int&gt;&#xa;+ ObtenerPorId(id): Task&lt;InversionDto?&gt;&#xa;+ ObtenerTodas(idUsuario?): Task&lt;List&lt;InversionDto&gt;&gt;&#xa;+ ObtenerActivas(idUsuario?): Task&lt;List&lt;InversionDto&gt;&gt;&#xa;+ ObtenerPagos(idInversion): Task&lt;List&lt;PagoInversionDto&gt;&gt;&#xa;+ Cancelar(id): Task&lt;bool&gt;&#xa;+ Actualizar(idInversion, request): Task&lt;bool&gt;&#xa;+ ActualizarEstados(): Task&lt;bool&gt;&#xa;- CalcularInteres(capital, tasa, plazo): decimal" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="InversionService">
+          <mxGeometry y="78" width="380" height="142" as="geometry"/>
+        </mxCell>
+
+        <!-- IRolService -->
+        <mxCell id="IRolService" value="&lt;&lt;interface&gt;&gt;&#xa;IRolService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="80" width="400" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="IRolService-methods" value="+ ObtenerPorId(id): Task&lt;RolDto?&gt;&#xa;+ ObtenerTodos(): Task&lt;List&lt;RolDto&gt;&gt;&#xa;+ Crear(request): Task&lt;int&gt;&#xa;+ Actualizar(id, request): Task&lt;bool&gt;&#xa;+ Eliminar(id): Task&lt;bool&gt;&#xa;+ AsignarRolAUsuario(idUsuario, idRol, asignadoPor): Task&lt;bool&gt;&#xa;+ RemoverRolDeUsuario(idUsuario, idRol): Task&lt;bool&gt;&#xa;+ ObtenerRolesDeUsuario(idUsuario): Task&lt;List&lt;UsuarioRolDto&gt;&gt;&#xa;+ ObtenerUsuariosConRol(idRol): Task&lt;List&lt;UsuarioRolDto&gt;&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="IRolService">
+          <mxGeometry y="40" width="400" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- RolService -->
+        <mxCell id="RolService" value="RolService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="290" width="400" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolService-fields" value="- _connectionRepository: IConnectionRepository&#xa;- _logger: ILogger&lt;RolService&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="RolService">
+          <mxGeometry y="26" width="400" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolService-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="RolService">
+          <mxGeometry y="70" width="400" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolService-methods" value="+ ObtenerPorId(id): Task&lt;RolDto?&gt;&#xa;+ ObtenerTodos(): Task&lt;List&lt;RolDto&gt;&gt;&#xa;+ Crear(request): Task&lt;int&gt;&#xa;+ Actualizar(id, request): Task&lt;bool&gt;&#xa;+ Eliminar(id): Task&lt;bool&gt;&#xa;+ AsignarRolAUsuario(idUsuario, idRol, asignadoPor): Task&lt;bool&gt;&#xa;+ RemoverRolDeUsuario(idUsuario, idRol): Task&lt;bool&gt;&#xa;+ ObtenerRolesDeUsuario(idUsuario): Task&lt;List&lt;UsuarioRolDto&gt;&gt;&#xa;+ ObtenerUsuariosConRol(idRol): Task&lt;List&lt;UsuarioRolDto&gt;&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="RolService">
+          <mxGeometry y="78" width="400" height="142" as="geometry"/>
+        </mxCell>
+
+        <!-- CONTROLLERS -->
+        <mxCell id="controllers-title" value="CONTROLLERS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1100" y="560" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- AuthController -->
+        <mxCell id="AuthController" value="AuthController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="600" width="360" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthController-fields" value="- _authService: IAuthService&#xa;- _logger: ILogger&lt;AuthController&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuthController">
+          <mxGeometry y="26" width="360" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthController-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="AuthController">
+          <mxGeometry y="70" width="360" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="AuthController-methods" value="+ Login(request): Task&lt;ActionResult&gt;&#xa;+ Registrar(request): Task&lt;ActionResult&gt;&#xa;+ CambiarContrasena(request): Task&lt;ActionResult&gt;&#xa;+ RecuperarContrasena(request): Task&lt;ActionResult&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="AuthController">
+          <mxGeometry y="78" width="360" height="102" as="geometry"/>
+        </mxCell>
+
+        <!-- InversionesController -->
+        <mxCell id="InversionesController" value="InversionesController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="600" width="380" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionesController-fields" value="- _inversionService: IInversionService&#xa;- _logger: ILogger&lt;InversionesController&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="InversionesController">
+          <mxGeometry y="26" width="380" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionesController-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="InversionesController">
+          <mxGeometry y="70" width="380" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="InversionesController-methods" value="+ Crear(request): Task&lt;IActionResult&gt;&#xa;+ ObtenerMisInversiones(): Task&lt;IActionResult&gt;&#xa;+ ObtenerPorUsuario(idUsuario): Task&lt;IActionResult&gt;&#xa;+ ObtenerPorId(id): Task&lt;IActionResult&gt;&#xa;+ Actualizar(idInversion, request): Task&lt;IActionResult&gt;&#xa;+ Cancelar(id): Task&lt;IActionResult&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="InversionesController">
+          <mxGeometry y="78" width="380" height="122" as="geometry"/>
+        </mxCell>
+
+        <!-- RolesController -->
+        <mxCell id="RolesController" value="RolesController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="600" width="400" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolesController-fields" value="- _rolService: IRolService&#xa;- _logger: ILogger&lt;RolesController&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="RolesController">
+          <mxGeometry y="26" width="400" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolesController-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="RolesController">
+          <mxGeometry y="70" width="400" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="RolesController-methods" value="+ ObtenerTodos(): Task&lt;ActionResult&gt;&#xa;+ ObtenerPorId(id): Task&lt;ActionResult&gt;&#xa;+ Crear(request): Task&lt;ActionResult&gt;&#xa;+ Actualizar(id, request): Task&lt;ActionResult&gt;&#xa;+ Eliminar(id): Task&lt;ActionResult&gt;&#xa;+ AsignarRol(request): Task&lt;ActionResult&gt;&#xa;+ RemoverRol(request): Task&lt;ActionResult&gt;&#xa;+ ObtenerRolesDeUsuario(idUsuario): Task&lt;ActionResult&gt;&#xa;+ ObtenerUsuariosConRol(idRol): Task&lt;ActionResult&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="RolesController">
+          <mxGeometry y="78" width="400" height="142" as="geometry"/>
+        </mxCell>
+
+        <!-- REPOSITORY -->
+        <mxCell id="repository-title" value="REPOSITORY" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1100" y="900" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- IConnectionRepository -->
+        <mxCell id="IConnectionRepository" value="&lt;&lt;interface&gt;&gt;&#xa;IConnectionRepository" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="940" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="IConnectionRepository-methods" value="+ GetConnection(): OracleConnection&#xa;+ TestConnection(): Task&lt;bool&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="IConnectionRepository">
+          <mxGeometry y="40" width="300" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ConnectionRepository -->
+        <mxCell id="ConnectionRepository" value="ConnectionRepository" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1080" width="300" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="ConnectionRepository-fields" value="- _configuration: IConfiguration&#xa;- _logger: ILogger&lt;ConnectionRepository&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="ConnectionRepository">
+          <mxGeometry y="26" width="300" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="ConnectionRepository-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" vertex="1" parent="ConnectionRepository">
+          <mxGeometry y="70" width="300" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="ConnectionRepository-methods" value="+ GetConnection(): OracleConnection&#xa;+ TestConnection(): Task&lt;bool&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="ConnectionRepository">
+          <mxGeometry y="78" width="300" height="72" as="geometry"/>
+        </mxCell>
+
+        <!-- RELATIONSHIPS -->
+
+        <!-- Usuario - UsuarioRol -->
+        <mxCell id="rel-usuario-usuariorol" edge="1" parent="1" source="Usuario" target="UsuarioRol">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="180"/>
+              <mxPoint x="800" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-usuario-usuariorol-label" value="1" edge="1" parent="1">
+          <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
+            <mxPoint x="320" y="170" as="sourcePoint"/>
+            <mxPoint x="660" y="170" as="targetPoint"/>
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-usuario-usuariorol-label2" value="*" edge="1" parent="1">
+          <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
+            <mxPoint x="660" y="170" as="sourcePoint"/>
+            <mxPoint x="800" y="170" as="targetPoint"/>
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Rol - UsuarioRol -->
+        <mxCell id="rel-rol-usuariorol" edge="1" parent="1" source="Rol" target="UsuarioRol">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-rol-usuariorol-label" value="1" edge="1" parent="1">
+          <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
+            <mxPoint x="620" y="150" as="sourcePoint"/>
+            <mxPoint x="660" y="150" as="targetPoint"/>
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-rol-usuariorol-label2" value="*" edge="1" parent="1">
+          <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
+            <mxPoint x="660" y="150" as="sourcePoint"/>
+            <mxPoint x="660" y="150" as="targetPoint"/>
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Usuario - Inversion -->
+        <mxCell id="rel-usuario-inversion" edge="1" parent="1" source="Usuario" target="Inversion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Moneda - Inversion -->
+        <mxCell id="rel-moneda-inversion" edge="1" parent="1" source="Moneda" target="Inversion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Inversion - PagoInversion -->
+        <mxCell id="rel-inversion-pagoinversion" edge="1" parent="1" source="Inversion" target="PagoInversion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Usuario - Prestamo -->
+        <mxCell id="rel-usuario-prestamo" edge="1" parent="1" source="Usuario" target="Prestamo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="330"/>
+              <mxPoint x="180" y="920"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Moneda - Prestamo -->
+        <mxCell id="rel-moneda-prestamo" edge="1" parent="1" source="Moneda" target="Prestamo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="510"/>
+              <mxPoint x="170" y="920"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Prestamo - PagoPrestamo -->
+        <mxCell id="rel-prestamo-pagoprestamo" edge="1" parent="1" source="Prestamo" target="PagoPrestamo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Moneda - SaldoDiarioFondos -->
+        <mxCell id="rel-moneda-saldo" edge="1" parent="1" source="Moneda" target="SaldoDiarioFondos">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="430"/>
+              <mxPoint x="860" y="430"/>
+              <mxPoint x="860" y="850"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- AuthService implements IAuthService -->
+        <mxCell id="rel-authservice-iauthservice" edge="1" parent="1" source="AuthService" target="IAuthService" style="dashed=1;endArrow=block;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- InversionService implements IInversionService -->
+        <mxCell id="rel-inversionservice-iinversionservice" edge="1" parent="1" source="InversionService" target="IInversionService" style="dashed=1;endArrow=block;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- RolService implements IRolService -->
+        <mxCell id="rel-rolservice-irolservice" edge="1" parent="1" source="RolService" target="IRolService" style="dashed=1;endArrow=block;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- AuthController uses AuthService -->
+        <mxCell id="rel-authcontroller-authservice" edge="1" parent="1" source="AuthController" target="AuthService" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- InversionesController uses InversionService -->
+        <mxCell id="rel-inversionescontroller-inversionservice" edge="1" parent="1" source="InversionesController" target="InversionService" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- RolesController uses RolService -->
+        <mxCell id="rel-rolescontroller-rolservice" edge="1" parent="1" source="RolesController" target="RolService" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ConnectionRepository implements IConnectionRepository -->
+        <mxCell id="rel-connectionrepo-iconnectionrepo" edge="1" parent="1" source="ConnectionRepository" target="IConnectionRepository" style="dashed=1;endArrow=block;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Services use ConnectionRepository -->
+        <mxCell id="rel-authservice-connectionrepo" edge="1" parent="1" source="AuthService" target="IConnectionRepository" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250" y="460"/>
+              <mxPoint x="1250" y="990"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel-inversionservice-connectionrepo" edge="1" parent="1" source="InversionService" target="IConnectionRepository" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1690" y="520"/>
+              <mxPoint x="1450" y="860"/>
+              <mxPoint x="1250" y="860"/>
+              <mxPoint x="1250" y="990"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel-rolservice-connectionrepo" edge="1" parent="1" source="RolService" target="IConnectionRepository" style="dashed=1;endArrow=open;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2120" y="520"/>
+              <mxPoint x="1450" y="870"/>
+              <mxPoint x="1250" y="870"/>
+              <mxPoint x="1250" y="990"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
