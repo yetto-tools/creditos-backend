@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
+using Oracle.ManagedDataAccess.Types;
 
 namespace BACKEND_CREDITOS.Services
 {
@@ -46,6 +47,8 @@ namespace BACKEND_CREDITOS.Services
         Task<List<InversionDto>> ObtenerActivas(int? idUsuario = null);
         Task<List<PagoInversionDto>> ObtenerPagos(int idInversion);
         Task<bool> Cancelar(int id);
+        Task<bool> Actualizar(int idInversion, InversionUpdateRequest request);
+
         Task<bool> ActualizarEstados();
     }
 
@@ -1009,6 +1012,75 @@ namespace BACKEND_CREDITOS.Services
                 return false;
             }
         }
+
+        public async Task<bool> Actualizar(int idInversion, InversionUpdateRequest request)
+        {
+            try
+            {
+                using (var connection = _connectionRepository.GetConnection())
+                {
+                    await connection.OpenAsync();
+
+                    // 1️⃣ Calcular los nuevos montos en .NET (también puedes hacerlo con un SP si prefieres)
+                    var interesTotal = CalcularInteres(request.CapitalInicial, request.TasaInteres, request.PlazoDias);
+                    var montoTotal = request.CapitalInicial + interesTotal;
+
+                    // 2️⃣ Actualizar la inversión
+                    using (var command = (OracleCommand)connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                    UPDATE inversiones
+                    SET id_moneda = :idMoneda,
+                        capital_inicial = :capitalInicial,
+                        tasa_interes = :tasaInteres,
+                        plazo_dias = :plazoDias,
+                        modalidad_pago = :modalidadPago,
+                        observaciones = :observaciones,
+                        interes_total_proyectado = :interesTotalProyectado,
+                        monto_total_a_recibir = :montoTotalARecibir,
+                        estado = :estado,
+                        fecha_actualizacion = SYSDATE
+                    WHERE id_inversion = :idInversion";
+
+                        command.Parameters.Add(new OracleParameter("idMoneda", OracleDbType.Int32) { Value = request.IdMoneda });
+                        command.Parameters.Add(new OracleParameter("capitalInicial", OracleDbType.Decimal) { Value = request.CapitalInicial });
+                        command.Parameters.Add(new OracleParameter("tasaInteres", OracleDbType.Decimal) { Value = request.TasaInteres });
+                        command.Parameters.Add(new OracleParameter("plazoDias", OracleDbType.Int32) { Value = request.PlazoDias });
+                        command.Parameters.Add(new OracleParameter("modalidadPago", OracleDbType.Varchar2) { Value = request.ModalidadPago });
+                        command.Parameters.Add(new OracleParameter("observaciones", OracleDbType.Varchar2) { Value = request.Observaciones ?? "" });
+                        command.Parameters.Add(new OracleParameter("interesTotalProyectado", OracleDbType.Decimal) { Value = interesTotal });
+                        command.Parameters.Add(new OracleParameter("montoTotalARecibir", OracleDbType.Decimal) { Value = montoTotal });
+                        command.Parameters.Add(new OracleParameter("estado", OracleDbType.Varchar2) { Value = request.Estado ?? "VIGENTE" });
+                        command.Parameters.Add(new OracleParameter("idInversion", OracleDbType.Int32) { Value = idInversion });
+
+                        var result = await command.ExecuteNonQueryAsync();
+                        if (result > 0)
+                        {
+                            _logger.LogInformation($"Inversión {idInversion} actualizada correctamente. Total a recibir: {montoTotal}");
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error actualizando inversión {idInversion}: {ex.Message}");
+                return false;
+            }
+
+
+        }
+        private decimal CalcularInteres(decimal capital, decimal tasaInteres, int plazoDias)
+        {
+            // Fórmula de interés simple prorrateada por días
+            var tasaDecimal = tasaInteres / 100m;
+            var interes = capital * tasaDecimal * (plazoDias / 365m);
+            return Math.Round(interes, 2);
+        }
+
+
+
 
         public async Task<bool> ActualizarEstados()
         {

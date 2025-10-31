@@ -77,6 +77,17 @@
         public Moneda? Moneda { get; set; }
         public List<PagoInversion> Pagos { get; set; } = new();
     }
+    public class InversionUpdateRequest
+    {
+        public int IdMoneda { get; set; }
+        public decimal CapitalInicial { get; set; }
+        public decimal TasaInteres { get; set; }
+        public int PlazoDias { get; set; }
+        public string ModalidadPago { get; set; } = "MENSUAL";
+        public string? Observaciones { get; set; }
+        public string? Estado { get; set; } = "VIGENTE";
+    }
+
 
     public class PagoInversion
     {
@@ -257,7 +268,7 @@
         public decimal TasaInteres { get; set; }
         public int PlazoDias { get; set; }
         public string ModalidadPago { get; set; } = string.Empty; // MENSUAL o FINAL
-        public string Observaciones { get; set; } = string.Empty;
+        public string? Observaciones { get; set; } = string.Empty;
     }
 
     public class InversionDto

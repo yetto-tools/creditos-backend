@@ -501,280 +501,280 @@ namespace BACKEND_CREDITOS.Controllers
             }
         }
 
-        [ApiController]
-        [Route("api/[controller]")]
-        [Authorize]
-        public class InversionesController : ControllerBase
-        {
-            private readonly IInversionService _inversionService;
-            private readonly ILogger<InversionesController> _logger;
+        //[ApiController]
+        //[Route("api/[controller]")]
+        //[Authorize]
+        //public class InversionesController : ControllerBase
+        //{
+        //    private readonly IInversionService _inversionService;
+        //    private readonly ILogger<InversionesController> _logger;
 
-            public InversionesController(IInversionService inversionService, ILogger<InversionesController> logger)
-            {
-                _inversionService = inversionService;
-                _logger = logger;
-            }
+        //    public InversionesController(IInversionService inversionService, ILogger<InversionesController> logger)
+        //    {
+        //        _inversionService = inversionService;
+        //        _logger = logger;
+        //    }
 
-            /// <summary>
-            /// Crear nueva inversión
-            /// </summary>
-            [HttpPost]
-            public async Task<ActionResult<ApiResponse<int>>> Crear([FromBody] InversionCreateRequest request)
-            {
-                try
-                {
-                    var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    /// <summary>
+        //    /// Crear nueva inversión
+        //    /// </summary>
+        //    [HttpPost]
+        //    public async Task<ActionResult<ApiResponse<int>>> Crear([FromBody] InversionCreateRequest request)
+        //    {
+        //        try
+        //        {
+        //            var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                    if (!int.TryParse(idUsuarioString, out var idUsuario))
-                    {
-                        return Unauthorized();
-                    }
+        //            if (!int.TryParse(idUsuarioString, out var idUsuario))
+        //            {
+        //                return Unauthorized();
+        //            }
 
-                    var idInversion = await _inversionService.Crear(idUsuario, request);
+        //            var idInversion = await _inversionService.Crear(idUsuario, request);
 
-                    if (idInversion > 0)
-                    {
-                        return CreatedAtAction(nameof(ObtenerPorId), new { id = idInversion }, new ApiResponse<int>
-                        {
-                            Exitoso = true,
-                            Mensaje = "Inversión creada exitosamente",
-                            Datos = idInversion,
-                            Codigo = 201
-                        });
-                    }
+        //            if (idInversion > 0)
+        //            {
+        //                return CreatedAtAction(nameof(ObtenerPorId), new { id = idInversion }, new ApiResponse<int>
+        //                {
+        //                    Exitoso = true,
+        //                    Mensaje = "Inversión creada exitosamente",
+        //                    Datos = idInversion,
+        //                    Codigo = 201
+        //                });
+        //            }
 
-                    return BadRequest(new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error al crear inversión",
-                        Codigo = 400
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error creando inversión");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return BadRequest(new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error al crear inversión",
+        //                Codigo = 400
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error creando inversión");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Obtener inversión por ID
-            /// </summary>
-            [HttpGet("{id}")]
-            public async Task<ActionResult<ApiResponse<InversionDto>>> ObtenerPorId(int id)
-            {
-                try
-                {
-                    var inversion = await _inversionService.ObtenerPorId(id);
+        //    /// <summary>
+        //    /// Obtener inversión por ID
+        //    /// </summary>
+        //    [HttpGet("{id}")]
+        //    public async Task<ActionResult<ApiResponse<InversionDto>>> ObtenerPorId(int id)
+        //    {
+        //        try
+        //        {
+        //            var inversion = await _inversionService.ObtenerPorId(id);
 
-                    if (inversion != null)
-                    {
-                        return Ok(new ApiResponse<InversionDto>
-                        {
-                            Exitoso = true,
-                            Mensaje = "Inversión obtenida",
-                            Datos = inversion,
-                            Codigo = 200
-                        });
-                    }
+        //            if (inversion != null)
+        //            {
+        //                return Ok(new ApiResponse<InversionDto>
+        //                {
+        //                    Exitoso = true,
+        //                    Mensaje = "Inversión obtenida",
+        //                    Datos = inversion,
+        //                    Codigo = 200
+        //                });
+        //            }
 
-                    return NotFound(new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Inversión no encontrada",
-                        Codigo = 404
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obteniendo inversión");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return NotFound(new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Inversión no encontrada",
+        //                Codigo = 404
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error obteniendo inversión");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Obtener inversiones del usuario actual
-            /// </summary>
-            [HttpGet]
-            public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerMisInversiones()
-            {
-                try
-                {
-                    var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    /// <summary>
+        //    /// Obtener inversiones del usuario actual
+        //    /// </summary>
+        //    [HttpGet]
+        //    public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerMisInversiones()
+        //    {
+        //        try
+        //        {
+        //            var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                    if (!int.TryParse(idUsuarioString, out var idUsuario))
-                    {
-                        return Unauthorized();
-                    }
+        //            if (!int.TryParse(idUsuarioString, out var idUsuario))
+        //            {
+        //                return Unauthorized();
+        //            }
 
-                    var inversiones = await _inversionService.ObtenerTodas(idUsuario);
+        //            var inversiones = await _inversionService.ObtenerTodas(idUsuario);
 
-                    return Ok(new ApiResponse<List<InversionDto>>
-                    {
-                        Exitoso = true,
-                        Mensaje = $"Se obtuvieron {inversiones.Count} inversiones",
-                        Datos = inversiones,
-                        Codigo = 200
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obteniendo inversiones");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return Ok(new ApiResponse<List<InversionDto>>
+        //            {
+        //                Exitoso = true,
+        //                Mensaje = $"Se obtuvieron {inversiones.Count} inversiones",
+        //                Datos = inversiones,
+        //                Codigo = 200
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error obteniendo inversiones");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Obtener inversiones de un usuario específico
-            /// </summary>
-            [HttpGet("usuario/{idUsuario}")]
-            public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerInversionesUsuario(int idUsuario)
-            {
-                try
-                {
-                    var inversiones = await _inversionService.ObtenerTodas(idUsuario);
+        //    /// <summary>
+        //    /// Obtener inversiones de un usuario específico
+        //    /// </summary>
+        //    [HttpGet("usuario/{idUsuario}")]
+        //    public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerInversionesUsuario(int idUsuario)
+        //    {
+        //        try
+        //        {
+        //            var inversiones = await _inversionService.ObtenerTodas(idUsuario);
 
-                    return Ok(new ApiResponse<List<InversionDto>>
-                    {
-                        Exitoso = true,
-                        Mensaje = $"Se obtuvieron {inversiones.Count} inversiones",
-                        Datos = inversiones,
-                        Codigo = 200
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obteniendo inversiones del usuario");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return Ok(new ApiResponse<List<InversionDto>>
+        //            {
+        //                Exitoso = true,
+        //                Mensaje = $"Se obtuvieron {inversiones.Count} inversiones",
+        //                Datos = inversiones,
+        //                Codigo = 200
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error obteniendo inversiones del usuario");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Obtener inversiones activas del usuario
-            /// </summary>
-            [HttpGet("activas")]
-            public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerActivas()
-            {
-                try
-                {
-                    var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    /// <summary>
+        //    /// Obtener inversiones activas del usuario
+        //    /// </summary>
+        //    [HttpGet("activas")]
+        //    public async Task<ActionResult<ApiResponse<List<InversionDto>>>> ObtenerActivas()
+        //    {
+        //        try
+        //        {
+        //            var idUsuarioString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                    if (!int.TryParse(idUsuarioString, out var idUsuario))
-                    {
-                        return Unauthorized();
-                    }
+        //            if (!int.TryParse(idUsuarioString, out var idUsuario))
+        //            {
+        //                return Unauthorized();
+        //            }
 
-                    var inversiones = await _inversionService.ObtenerActivas(idUsuario);
+        //            var inversiones = await _inversionService.ObtenerActivas(idUsuario);
 
-                    return Ok(new ApiResponse<List<InversionDto>>
-                    {
-                        Exitoso = true,
-                        Mensaje = $"Se obtuvieron {inversiones.Count} inversiones activas",
-                        Datos = inversiones,
-                        Codigo = 200
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obteniendo inversiones activas");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return Ok(new ApiResponse<List<InversionDto>>
+        //            {
+        //                Exitoso = true,
+        //                Mensaje = $"Se obtuvieron {inversiones.Count} inversiones activas",
+        //                Datos = inversiones,
+        //                Codigo = 200
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error obteniendo inversiones activas");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Obtener pagos de una inversión
-            /// </summary>
-            [HttpGet("{id}/pagos")]
-            public async Task<ActionResult<ApiResponse<List<PagoInversionDto>>>> ObtenerPagos(int id)
-            {
-                try
-                {
-                    var pagos = await _inversionService.ObtenerPagos(id);
+        //    /// <summary>
+        //    /// Obtener pagos de una inversión
+        //    /// </summary>
+        //    [HttpGet("{id}/pagos")]
+        //    public async Task<ActionResult<ApiResponse<List<PagoInversionDto>>>> ObtenerPagos(int id)
+        //    {
+        //        try
+        //        {
+        //            var pagos = await _inversionService.ObtenerPagos(id);
 
-                    return Ok(new ApiResponse<List<PagoInversionDto>>
-                    {
-                        Exitoso = true,
-                        Mensaje = $"Se obtuvieron {pagos.Count} pagos",
-                        Datos = pagos,
-                        Codigo = 200
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obteniendo pagos");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
+        //            return Ok(new ApiResponse<List<PagoInversionDto>>
+        //            {
+        //                Exitoso = true,
+        //                Mensaje = $"Se obtuvieron {pagos.Count} pagos",
+        //                Datos = pagos,
+        //                Codigo = 200
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error obteniendo pagos");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
 
-            /// <summary>
-            /// Cancelar inversión
-            /// </summary>
-            [HttpDelete("{id}")]
-            public async Task<ActionResult<ApiResponse>> Cancelar(int id)
-            {
-                try
-                {
-                    var resultado = await _inversionService.Cancelar(id);
+        //    /// <summary>
+        //    /// Cancelar inversión
+        //    /// </summary>
+        //    [HttpDelete("{id}")]
+        //    public async Task<ActionResult<ApiResponse>> Cancelar(int id)
+        //    {
+        //        try
+        //        {
+        //            var resultado = await _inversionService.Cancelar(id);
 
-                    if (resultado)
-                    {
-                        return Ok(new ApiResponse
-                        {
-                            Exitoso = true,
-                            Mensaje = "Inversión cancelada",
-                            Codigo = 200
-                        });
-                    }
+        //            if (resultado)
+        //            {
+        //                return Ok(new ApiResponse
+        //                {
+        //                    Exitoso = true,
+        //                    Mensaje = "Inversión cancelada",
+        //                    Codigo = 200
+        //                });
+        //            }
 
-                    return BadRequest(new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error al cancelar inversión",
-                        Codigo = 400
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error cancelando inversión");
-                    return StatusCode(500, new ApiResponse
-                    {
-                        Exitoso = false,
-                        Mensaje = "Error interno del servidor",
-                        Codigo = 500
-                    });
-                }
-            }
-        }
+        //            return BadRequest(new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error al cancelar inversión",
+        //                Codigo = 400
+        //            });
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, "Error cancelando inversión");
+        //            return StatusCode(500, new ApiResponse
+        //            {
+        //                Exitoso = false,
+        //                Mensaje = "Error interno del servidor",
+        //                Codigo = 500
+        //            });
+        //        }
+        //    }
+        //}
 
         [ApiController]
         [Route("api/[controller]")]

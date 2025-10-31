@@ -110,4 +110,6 @@ namespace BACKEND_CREDITOS.Validators
                 .Must(x => x == "MENSUAL" || x == "FINAL").WithMessage("La modalidad debe ser MENSUAL o FINAL");
         }
     }
+
+
 }

@@ -146,7 +146,7 @@ try
     app.MapControllers();
 
     // Ruta raíz
-    app.MapGet("/", () => new
+    app.MapGet("/api", () => new
     {
         mensaje = "API REST - Sistema de Operaciones Financieras Bancarias",
         version = "1.0.0",

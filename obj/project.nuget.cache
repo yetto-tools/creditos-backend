@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "IFNM4/wBdXc=",
+  "dgSpecHash": "3MeT0QZSvu0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Erick\\source\\repos\\BACKEND_CREDITOS\\BACKEND_CREDITOS.csproj",
+  "projectFilePath": "C:\\Users\\Erick\\source\\repos\\creditos-backend\\BACKEND_CREDITOS.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Erick\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\Erick\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.1\\automapper.extensions.microsoft.dependencyinjection.12.0.1.nupkg.sha512",
